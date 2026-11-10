@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Rebuild the contents page and upload everything to GitHub.
+set -e
+cd "$(dirname "$0")"
+python3 build.py
+git add -A
+git commit -m "${1:-Update textbook}" || { echo "Nothing new to publish."; exit 0; }
+git push
+echo "Done - refresh the page on your phone in ~1 minute."

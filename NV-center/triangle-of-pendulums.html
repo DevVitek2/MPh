@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Why two orbitals have equal energy: the triangle of pendulums</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F2F4F6;--panel:#FFFFFF;--text-primary:#16202B;--text-secondary:#4B5866;--text-muted:#7D8996;--border:#D7DDE3;--border-strong:#B9C2CB;--bg-accent:#E4ECFB;--text-accent:#1E4FA8;--border-accent:#1E4FA8;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0F151C;--panel:#17202A;--text-primary:#E5EAF0;--text-secondary:#A8B3BF;--text-muted:#7A8693;--border:#26323E;--border-strong:#3A4856;--bg-accent:#1E2F4D;--text-accent:#A9C5F5;--border-accent:#A9C5F5;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0F151C;--panel:#17202A;--text-primary:#E5EAF0;--text-secondary:#A8B3BF;--text-muted:#7A8693;--border:#26323E;--border-strong:#3A4856;--bg-accent:#1E2F4D;--text-accent:#A9C5F5;--border-accent:#A9C5F5;color-scheme:dark}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--text-primary);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.55;font-variant-numeric:tabular-nums}
+.wrap{max-width:860px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:24px;font-weight:600;margin:4px 0 4px;line-height:1.25}
+.lead{color:var(--text-secondary);margin:0 0 16px;max-width:66ch}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px}
+.row{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin:0 0 8px}
+button{font:inherit;font-size:14px;color:var(--text-primary);background:transparent;border:1px solid var(--border-strong);border-radius:8px;padding:7px 12px;cursor:pointer;min-height:38px}
+button.on{background:var(--bg-accent);color:var(--text-accent);border-color:var(--border-accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--border-accent);outline-offset:2px}
+.sl{display:grid;grid-template-columns:minmax(0,9em) minmax(0,1fr) 3.6em;gap:8px;align-items:center;margin:4px 0}
+.sl span{font-size:14px;color:var(--text-secondary)}
+.sl output{font-size:14px;font-weight:500;text-align:right}
+input[type=range]{width:100%;accent-color:var(--border-accent)}
+.lbl{font-size:14px;color:var(--text-secondary)}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin-top:8px}
+@media (min-width:640px){.grid2{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)}}
+.box{border:1px solid var(--border);border-radius:12px;background:var(--bg);width:100%;display:block}
+.cap{font-size:13px;color:var(--text-secondary);margin:4px 2px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Why two orbitals have equal energy</h1>
+<p class="lead">Three identical bobs on a triangle, joined by springs, stand in for the three carbon orbitals around the vacancy. Frequency here plays the role of energy.</p>
+<div class="card">
+<div class="row" id="modes">
+<button data-m="0" class="on">All in step</button>
+<button data-m="1">Mode A</button>
+<button data-m="2">Mode B</button>
+<button data-m="r">Random kick</button>
+</div>
+<div class="row">
+<button id="pause">Pause</button>
+<button id="rot">Rotate 120°</button>
+<label class="lbl"><input type="checkbox" id="damp"> Friction</label>
+<span class="lbl" id="rotmsg"></span>
+</div>
+<div class="sl"><span>Speed</span><input type="range" id="sp" min="0.1" max="2" step="0.05" value="0.6"><output id="sp-o">0.60×</output></div>
+<div class="sl"><span>Coupling springs</span><input type="range" id="k" min="0" max="0.8" step="0.01" value="0.3"><output id="k-o">0.30</output></div>
+<div class="sl"><span>Break symmetry</span><input type="range" id="d" min="0" max="1" step="0.01" value="0"><output id="d-o">0.00</output></div>
+<div class="grid2">
+<div><canvas id="cv" class="box"></canvas><div class="cap">Top view. Each bob swings in and out. Coral = out, blue = in.</div></div>
+<div><canvas id="lv" class="box"></canvas><div class="cap">Mode frequencies. Brighter = more of that mode in the motion now.</div></div>
+</div>
+<canvas id="orb" class="box" style="margin-top:8px"></canvas>
+<div class="cap">The same three patterns as carbon orbitals. Coral and blue = opposite signs of the electron wave. Lobe size = share of the orbital on that carbon.</div>
+</div>
+</div>
+<script>
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim()||'#888';
+let kap=0.3,del=0,x=[0,0,0],v=[0,0,0],mode='0',shift=0,speed=0.6,damp=false,paused=false;
+const W0=1;
+function Kmat(){const k=[[0,kap*(1+del*1.5),kap],[kap*(1+del*1.5),0,kap],[kap,kap,0]];const K=[[0,0,0],[0,0,0],[0,0,0]];
+ for(let i=0;i<3;i++){let s=0;for(let j=0;j<3;j++)if(j!==i){K[i][j]=-k[i][j];s+=k[i][j];}K[i][i]=W0*W0+s;}return K;}
+function eig(A){const a=A.map(r=>r.slice()),V=[[1,0,0],[0,1,0],[0,0,1]];
+ for(let sw=0;sw<60;sw++){let off=0;for(let p=0;p<3;p++)for(let q=p+1;q<3;q++)off+=a[p][q]*a[p][q];if(off<1e-18)break;
+  for(let p=0;p<3;p++)for(let q=p+1;q<3;q++){if(Math.abs(a[p][q])<1e-14)continue;const th=0.5*Math.atan2(2*a[p][q],a[q][q]-a[p][p]),c=Math.cos(th),s=Math.sin(th);
+   for(let k=0;k<3;k++){const akp=a[k][p],akq=a[k][q];a[k][p]=c*akp-s*akq;a[k][q]=s*akp+c*akq;}
+   for(let k=0;k<3;k++){const apk=a[p][k],aqk=a[q][k];a[p][k]=c*apk-s*aqk;a[q][k]=s*apk+c*aqk;}
+   for(let k=0;k<3;k++){const vkp=V[k][p],vkq=V[k][q];V[k][p]=c*vkp-s*vkq;V[k][q]=s*vkp+c*vkq;}}}
+ const vals=[a[0][0],a[1][1],a[2][2]],idx=[0,1,2].sort((i,j)=>vals[i]-vals[j]);
+ return{w:idx.map(i=>Math.sqrt(Math.max(0,vals[i]))),vec:idx.map(i=>[V[0][i],V[1][i],V[2][i]])};}
+let E=eig(Kmat());
+const SYM=[[1,1,1].map(z=>z/Math.sqrt(3)),[1,-0.5,-0.5].map(z=>z/Math.sqrt(1.5)),[0,1,-1].map(z=>z/Math.SQRT2)];
+function modeVec(m){const i=m==='0'?0:m==='1'?1:2;return del>0?E.vec[i]:SYM[i];}
+function start(m){mode=m;shift=0;let x0;if(m==='r'){x0=[Math.random()*2-1,Math.random()*2-1,Math.random()*2-1];const n=Math.hypot(...x0);x0=x0.map(z=>z/n);}else{x0=modeVec(m).slice();}
+ if(m==='0'&&x0[0]+x0[1]+x0[2]<0)x0=x0.map(z=>-z);x=x0;v=[0,0,0];document.getElementById('rotmsg').textContent='';}
+function acc(xx,vv){const K=Kmat(),g=damp?0.12:0;return[0,1,2].map(i=>-(K[i][0]*xx[0]+K[i][1]*xx[1]+K[i][2]*xx[2])-g*vv[i]);}
+function step(dt){const a1=acc(x,v),xh=x.map((z,i)=>z+v[i]*dt/2),vh=v.map((z,i)=>z+a1[i]*dt/2),a2=acc(xh,vh);x=x.map((z,i)=>z+vh[i]*dt);v=v.map((z,i)=>z+a2[i]*dt);}
+function weights(){return E.vec.map((u,k)=>{const px=u[0]*x[0]+u[1]*x[1]+u[2]*x[2],pv=u[0]*v[0]+u[1]*v[1]+u[2]*v[2],w=E.w[k];return px*px+(w>0?pv*pv/(w*w):0);});}
+const cv=document.getElementById('cv'),lv=document.getElementById('lv'),orb=document.getElementById('orb');
+function prep(c,h){const d=window.devicePixelRatio||1,w=c.clientWidth;c.style.height=h+'px';c.width=w*d;c.height=h*d;const g=c.getContext('2d');g.setTransform(d,0,0,d,0,0);return{g,w,h};}
+let P1,P2,P3;function sizeAll(){P1=prep(cv,250);P2=prep(lv,250);P3=prep(orb,150);}
+const ang=i=>-Math.PI/2+i*2*Math.PI/3+shift;
+function zig(g,x0,y0,x1,y1,n,amp){const dx=x1-x0,dy=y1-y0,L=Math.hypot(dx,dy),px=-dy/L,py=dx/L;g.beginPath();g.moveTo(x0,y0);for(let i=1;i<n;i++){const f=i/n,s=(i%2?1:-1)*amp;g.lineTo(x0+dx*f+px*s,y0+dy*f+py*s);}g.lineTo(x1,y1);g.stroke();}
+const bobCol=z=>z>=0?'#D85A30':'#378ADD';
+function energy(){const K=Kmat();let pe=0;for(let i=0;i<3;i++)for(let j=0;j<3;j++)pe+=x[i]*K[i][j]*x[j];return 0.5*(v[0]**2+v[1]**2+v[2]**2)+0.5*pe;}
+function drawMain(){const{g,w,h}=P1;g.clearRect(0,0,w,h);const cx=w/2,cy=h/2+10,R=Math.min(w,h)*0.32,A=R*0.42;
+ g.save();g.strokeStyle=css('--border-strong');g.setLineDash([3,4]);g.lineWidth=1;g.beginPath();g.arc(cx,cy,R,0,2*Math.PI);g.stroke();g.restore();
+ g.fillStyle=css('--text-secondary');g.beginPath();g.arc(cx,cy,3,0,2*Math.PI);g.fill();
+ const pos=[0,1,2].map(i=>{const r=R+A*x[i];return[cx+r*Math.cos(ang(i)),cy+r*Math.sin(ang(i))];});
+ for(const[i,j,s]of[[0,1,1+del*1.5],[1,2,1],[2,0,1]]){g.strokeStyle=s>1.01?'#BA7517':css('--text-muted');g.lineWidth=s>1.01?2.2:1.4;zig(g,pos[i][0],pos[i][1],pos[j][0],pos[j][1],12,4);}
+ for(let i=0;i<3;i++){g.strokeStyle=css('--border-strong');g.lineWidth=1;g.beginPath();g.moveTo(cx+(R-A)*Math.cos(ang(i)),cy+(R-A)*Math.sin(ang(i)));g.lineTo(cx+(R+A)*Math.cos(ang(i)),cy+(R+A)*Math.sin(ang(i)));g.stroke();}
+ for(let i=0;i<3;i++){const[px,py]=pos[i],mag=Math.min(1,Math.abs(x[i])*1.4);g.fillStyle=bobCol(x[i]);g.globalAlpha=0.35+0.65*mag;g.beginPath();g.arc(px,py,12,0,2*Math.PI);g.fill();g.globalAlpha=1;
+  g.fillStyle='#fff';g.font='500 12px "IBM Plex Sans",sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(String(i+1),px,py+1);}
+ g.fillStyle=css('--text-secondary');g.font='12px "IBM Plex Sans",sans-serif';g.textAlign='left';g.textBaseline='alphabetic';g.fillText('energy left: '+energy().toFixed(3),8,16);}
+function drawLevels(){const{g,w,h}=P2;g.clearRect(0,0,w,h);const wv=weights(),tot=wv.reduce((a,b)=>a+b,0)||1;
+ const lo=W0*0.9,hi=Math.sqrt(W0*W0+3*0.8*2.5)*1.03,ys=f=>h-28-(f-lo)/(hi-lo)*(h-60);
+ g.fillStyle=css('--text-secondary');g.font='12px "IBM Plex Sans",sans-serif';g.textAlign='left';g.fillText('frequency',8,16);
+ g.strokeStyle=css('--border-strong');g.lineWidth=1;g.beginPath();g.moveTo(22,24);g.lineTo(22,h-20);g.stroke();
+ const names=['in step','A','B'],cols=['#1D9E75','#7F77DD','#7F77DD'];
+ E.w.forEach((f,k)=>{const y=ys(f),x0=k===0?w*0.3:(k===1?w*0.22:w*0.56),x1=k===0?w*0.7:(k===1?w*0.48:w*0.82),a=0.25+0.75*Math.min(1,wv[k]/tot*1.5);
+  g.globalAlpha=a;g.strokeStyle=cols[k];g.lineWidth=4;g.lineCap='round';g.beginPath();g.moveTo(x0,y);g.lineTo(x1,y);g.stroke();g.globalAlpha=1;
+  g.fillStyle=css('--text-primary');g.font='500 12px "IBM Plex Sans",sans-serif';g.textAlign='center';g.fillText(names[k],(x0+x1)/2,y-8);
+  g.fillStyle=css('--text-secondary');g.font='11px "IBM Plex Sans",sans-serif';g.fillText(f.toFixed(3),(x0+x1)/2,y+16);});
+ const split=Math.abs(E.w[2]-E.w[1]);g.textAlign='left';g.font='12px "IBM Plex Sans",sans-serif';g.fillStyle=split<1e-6?'#1D9E75':'#BA7517';
+ g.fillText(split<1e-6?'A and B: exactly equal':'A and B split by '+split.toFixed(3),8,h-6);}
+function drawOrb(){const{g,w,h}=P3;g.clearRect(0,0,w,h);
+ g.fillStyle=css('--text-primary');g.font='500 13px "IBM Plex Sans",sans-serif';g.textAlign='left';g.fillText('The same three patterns as carbon orbitals around the vacancy',10,18);
+ const labels=['all in step → mixes with N → the lower orbitals','pattern A → one of the two top orbitals','pattern B → the other top orbital'];const cw=w/3;
+ SYM.forEach((p,k)=>{const cx=cw*k+cw/2,cy=78,R=28,active=(mode==='0'&&k===0)||(mode==='1'&&k===1)||(mode==='2'&&k===2);
+  if(active){g.strokeStyle=css('--border-accent');g.lineWidth=1.5;g.strokeRect(cw*k+6,28,cw-12,h-34);}
+  g.fillStyle=css('--text-muted');g.beginPath();g.arc(cx,cy,3,0,2*Math.PI);g.fill();
+  for(let i=0;i<3;i++){const a=-Math.PI/2+i*2*Math.PI/3,ax=cx+R*Math.cos(a),ay=cy+R*Math.sin(a),s=Math.abs(p[i])/0.82;
+   if(s<0.02){g.strokeStyle=css('--border-strong');g.beginPath();g.arc(ax,ay,4,0,2*Math.PI);g.stroke();continue;}
+   g.save();g.translate(ax,ay);g.rotate(a+Math.PI);g.fillStyle=bobCol(p[i]);g.globalAlpha=0.8;g.beginPath();g.ellipse(9*s,0,11*s,6*s,0,0,2*Math.PI);g.fill();g.restore();
+   g.fillStyle=css('--text-secondary');g.beginPath();g.arc(ax,ay,3.5,0,2*Math.PI);g.fill();}
+  g.fillStyle=css('--text-secondary');g.font='11px "IBM Plex Sans",sans-serif';g.textAlign='center';labels[k].split(' → ').forEach((wd,j)=>g.fillText(wd,cx,120+j*13));});}
+function rotate(){shift+=2*Math.PI/3;const r=document.getElementById('rotmsg');
+ r.textContent=del>0?'Symmetry broken: the rotated pattern is no longer a clean mode.':(mode==='1'||mode==='2')?'Rotated: looks different, same frequency.':mode==='0'?'All in step looks the same after rotating.':'Rotated the picture by 120°.';}
+document.querySelectorAll('#modes button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#modes button').forEach(z=>z.classList.toggle('on',z===b));start(b.dataset.m);});
+document.getElementById('rot').onclick=rotate;
+document.getElementById('pause').onclick=e=>{paused=!paused;e.target.textContent=paused?'Play':'Pause';};
+document.getElementById('damp').onchange=e=>damp=e.target.checked;
+function bind(id,fmt,fn,restart){const s=document.getElementById(id),o=document.getElementById(id+'-o');s.oninput=()=>{const val=parseFloat(s.value);o.textContent=fmt(val);fn(val);if(restart){E=eig(Kmat());start(mode);}};}
+bind('sp',z=>z.toFixed(2)+'×',z=>speed=z,false);bind('k',z=>z.toFixed(2),z=>kap=z,true);bind('d',z=>z.toFixed(2),z=>del=z,true);
+let last=null;function loop(ts){if(last===null)last=ts;const dt=Math.min(0.05,(ts-last)/1000);last=ts;
+ if(!paused){let sim=dt*2.5*speed;while(sim>0){const h=Math.min(0.01,sim);step(h);sim-=h;}}
+ drawMain();drawLevels();drawOrb();requestAnimationFrame(loop);}
+window.addEventListener('resize',sizeAll);sizeAll();start('0');requestAnimationFrame(loop);
+</script>
+</body>
+</html>

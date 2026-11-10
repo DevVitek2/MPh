@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inside the NV center: where the spin comes from</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F4F6; --panel:#FFFFFF; --ink:#16202B; --ink-2:#4B5866; --ink-3:#7D8996;
+  --line:#D7DDE3; --line-2:#B9C2CB;
+  --carbon:#8A96A3; --nitro:#2F6FDB; --dang:#C98A12; --extra:#2E9E4F; --spin:#7A5AE0; --pair:#5E6B78;
+  --accent-bg:#E4ECFB; --accent-ink:#1E4FA8;
+  color-scheme: light; box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F151C; --panel:#17202A; --ink:#E5EAF0; --ink-2:#A8B3BF; --ink-3:#7A8693;
+    --line:#26323E; --line-2:#3A4856;
+    --carbon:#7F8B98; --nitro:#5B93F0; --dang:#E3A93A; --extra:#4CC46F; --spin:#A88DF6; --pair:#9AA6B2;
+    --accent-bg:#1E2F4D; --accent-ink:#A9C5F5;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F151C; --panel:#17202A; --ink:#E5EAF0; --ink-2:#A8B3BF; --ink-3:#7A8693;
+  --line:#26323E; --line-2:#3A4856;
+  --carbon:#7F8B98; --nitro:#5B93F0; --dang:#E3A93A; --extra:#4CC46F; --spin:#A88DF6; --pair:#9AA6B2;
+  --accent-bg:#1E2F4D; --accent-ink:#A9C5F5;
+  color-scheme: dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.55;font-variant-numeric:tabular-nums}
+.wrap{max-width:980px;margin:0 auto;padding:20px 16px 48px}
+header h1{font-size:26px;font-weight:600;letter-spacing:-0.01em;margin:4px 0 4px;line-height:1.2}
+header p{margin:0 0 18px;color:var(--ink-2);max-width:66ch}
+.layout{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+@media (min-width:860px){.layout{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.card h2{font-size:17px;font-weight:600;margin:0 0 8px}
+#stage{position:relative;height:420px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg);touch-action:none;cursor:grab}
+#stage canvas{display:block}
+.lab{position:absolute;transform:translate(-50%,-130%);font-size:12px;font-weight:500;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:1px 6px;white-space:nowrap;pointer-events:none;transition:opacity .25s}
+.lab.spin{color:var(--spin);border-color:var(--spin)}
+.lab.extra{color:var(--extra);border-color:var(--extra)}
+.seg{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+button{font:inherit;font-size:14px;color:var(--ink);background:transparent;border:1px solid var(--line-2);border-radius:8px;padding:7px 12px;cursor:pointer;min-height:38px}
+button:hover{background:var(--bg)}
+button.on{background:var(--accent-bg);color:var(--accent-ink);border-color:var(--accent-ink)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:10px 0 0}
+label.chk{font-size:14px;color:var(--ink-2);display:flex;align-items:center;gap:6px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 2px 0;font-size:13px;color:var(--ink-2)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0 0}
+.stat{background:var(--bg);border-radius:10px;padding:8px 10px}
+.stat .k{font-size:12px;color:var(--ink-2)}
+.stat .v{font-size:17px;font-weight:600}
+#lv{display:block;width:100%;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+.explain{font-size:14px;color:var(--ink-2);margin:10px 0 0}
+.explain b{color:var(--ink);font-weight:600}
+.note{font-size:13px;color:var(--ink-3);margin:12px 0 0}
+.grp{font-size:12px;color:var(--ink-3);margin:10px 0 4px;text-transform:uppercase;letter-spacing:.06em}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>Inside the NV center: where the spin comes from</h1>
+<p>A close-up of the nitrogen, the empty site and the three carbons around it. Switch between the electrons as they sit on their own atoms and after their orbitals merge, and see which two electrons are left unpaired.</p>
+</header>
+
+<div class="layout">
+<section class="card" aria-label="3D view">
+<div class="grp">Electrons</div>
+<div class="seg" id="phase">
+<button data-p="0" class="on">Before overlap</button>
+<button data-p="1">After overlap</button>
+</div>
+<div class="grp">Charge state</div>
+<div class="seg" id="charge">
+<button data-c="-1" class="on">NV⁻ (6 electrons)</button>
+<button data-c="0">NV⁰ (5 electrons)</button>
+</div>
+<div id="stage" role="img" aria-label="Close-up of the NV center with its electrons"></div>
+<div class="row">
+<label class="chk"><input type="checkbox" id="bonds" checked> Show bond electrons</label>
+<label class="chk"><input type="checkbox" id="rot" checked> Slow rotation</label>
+</div>
+<div class="legend">
+<span><i class="dot" style="background:var(--nitro)"></i>nitrogen</span>
+<span><i class="dot" style="background:var(--carbon)"></i>carbon</span>
+<span><i class="dot" style="background:var(--dang)"></i>dangling-bond electron</span>
+<span><i class="dot" style="background:var(--nitro);opacity:.75"></i>lone-pair electron</span>
+<span><i class="dot" style="background:var(--extra)"></i>captured electron</span>
+<span><i class="dot" style="background:var(--spin)"></i>unpaired: the spin</span>
+<span><i class="dot" style="background:var(--pair)"></i>paired</span>
+</div>
+</section>
+
+<section class="card" aria-label="Counting the electrons">
+<h2>Counting</h2>
+<canvas id="lv" aria-label="Orbital filling diagram"></canvas>
+<div class="stats">
+<div class="stat"><div class="k">Electrons at the defect</div><div class="v" id="o-n">6</div></div>
+<div class="stat"><div class="k">Unpaired</div><div class="v" id="o-u">3 + 1</div></div>
+<div class="stat"><div class="k">Total spin</div><div class="v" id="o-s">–</div></div>
+<div class="stat"><div class="k">Spin states</div><div class="v" id="o-st">–</div></div>
+</div>
+<p class="explain" id="ex"></p>
+<p class="note">Electrons are drawn as dots so you can count them. Really they are clouds, and they are identical, so which dot moves where is only for illustration. The two spin electrons are drawn with parallel arrows to show they add up to spin 1; the spin state 0 of a spin-1 is a quantum mix that arrows can’t show exactly.</p>
+</section>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const stage=document.getElementById('stage');
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setPixelRatio(window.devicePixelRatio||1);stage.appendChild(renderer.domElement);
+const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(34,1,0.1,100);camera.position.set(0,0.15,6.2);camera.lookAt(0,0.15,0);
+scene.add(new THREE.AmbientLight(0xffffff,0.72));const dl=new THREE.DirectionalLight(0xffffff,0.55);dl.position.set(2,4,5);scene.add(dl);
+const outer=new THREE.Group();scene.add(outer);const inner=new THREE.Group();outer.add(inner);
+const S=3.2;
+const V=[.25,.25,.25],N=[0,0,0];
+const dI=[[.25,.25,.25],[.25,-.25,-.25],[-.25,.25,-.25],[-.25,-.25,.25]];
+const add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]],sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
+const ctr=[0.17,0.17,0.17];
+const W=p=>new THREE.Vector3((p[0]-ctr[0])*S,(p[1]-ctr[1])*S,(p[2]-ctr[2])*S);
+const eq=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2])<1e-6;
+const CD=[[0,.5,.5],[.5,0,.5],[.5,.5,0]];          // carbons with dangling bonds (around V)
+const CN=[[-.25,-.25,.25],[-.25,.25,-.25],[.25,-.25,-.25]]; // carbons bonded to N
+const outerOfCD=CD.map(c=>dI.map(d=>add(c,d)).filter(p=>!eq(p,V)));
+const outerOfCN=CN.map(c=>dI.map(d=>sub(c,d)).filter(p=>!eq(p,N)));
+const axis=new THREE.Vector3(1,1,1).normalize();
+inner.quaternion.setFromUnitVectors(axis,new THREE.Vector3(0,1,0));
+
+const M={};
+function mats(){M.c=new THREE.MeshLambertMaterial({color:css('--carbon')});M.cf=new THREE.MeshLambertMaterial({color:css('--carbon'),transparent:true,opacity:0.35});
+ M.n=new THREE.MeshLambertMaterial({color:css('--nitro')});M.bond=new THREE.MeshLambertMaterial({color:css('--carbon'),transparent:true,opacity:0.55});
+ M.bondf=new THREE.MeshLambertMaterial({color:css('--carbon'),transparent:true,opacity:0.18});
+ M.pair=new THREE.MeshBasicMaterial({color:css('--pair')});
+ M.lobe=new THREE.MeshLambertMaterial({color:css('--dang'),transparent:true,opacity:0.28,depthWrite:false});
+ M.lp=new THREE.MeshLambertMaterial({color:css('--nitro'),transparent:true,opacity:0.22,depthWrite:false});
+ M.cloudLow=new THREE.MeshLambertMaterial({color:css('--pair'),transparent:true,opacity:0,depthWrite:false});
+ M.cloudE=new THREE.MeshLambertMaterial({color:css('--spin'),transparent:true,opacity:0,depthWrite:false});}
+mats();
+const sphere=(r)=>new THREE.SphereGeometry(r,24,16);
+function cyl(a,b,r,mat){const d=b.clone().sub(a),len=d.length(),m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,10),mat);m.position.copy(a.clone().add(b).multiplyScalar(.5));m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());return m;}
+const atomMeshes=[];
+function atom(p,r,mat){const m=new THREE.Mesh(sphere(r),mat);m.position.copy(W(p));inner.add(m);atomMeshes.push(m);return m;}
+atom(N,0.17,M.n);CD.forEach(p=>atom(p,0.14,M.c));CN.forEach(p=>atom(p,0.14,M.c));
+outerOfCD.flat().forEach(p=>atom(p,0.1,M.cf));outerOfCN.flat().forEach(p=>atom(p,0.1,M.cf));
+const bondPairs=new THREE.Group();inner.add(bondPairs);
+function bond(a,b,mat){inner.add(cyl(W(a),W(b),0.028,mat));
+ const A=W(a),B=W(b),mid=A.clone().lerp(B,.5),d=B.clone().sub(A).normalize();let pp=new THREE.Vector3(0,1,0).cross(d);if(pp.length()<0.1)pp=new THREE.Vector3(1,0,0).cross(d);pp.normalize().multiplyScalar(0.07);
+ for(const s of[-1,1]){const e=new THREE.Mesh(sphere(0.045),M.pair);e.position.copy(mid.clone().add(pp.clone().multiplyScalar(s)));bondPairs.add(e);}}
+CN.forEach(c=>bond(N,c,M.bond));
+CD.forEach((c,i)=>outerOfCD[i].forEach(o=>bond(c,o,M.bondf)));
+CN.forEach((c,i)=>outerOfCN[i].forEach(o=>bond(c,o,M.bondf)));
+/* vacancy marker */
+const vac=new THREE.Mesh(sphere(0.16),new THREE.MeshBasicMaterial({color:css('--ink-3'),wireframe:true,transparent:true,opacity:0.45}));vac.position.copy(W(V));inner.add(vac);
+/* lobes: dangling orbitals and N lone pair */
+const lobes=[];
+function lobe(from,mat){const A=W(from),B=W(V),dir=B.clone().sub(A).normalize(),m=new THREE.Mesh(sphere(1),mat);m.scale.set(0.13,0.26,0.13);m.position.copy(A.clone().add(dir.clone().multiplyScalar(0.33)));m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);inner.add(m);lobes.push(m);return A.clone().add(dir.clone().multiplyScalar(0.42));}
+const lobeTips=CD.map(c=>lobe(c,M.lobe));const lpTip=lobe(N,M.lp);
+/* shared clouds (after) */
+const Vw=W(V);
+const cloudLow=new THREE.Mesh(sphere(1),M.cloudLow);cloudLow.scale.set(0.42,0.5,0.42);cloudLow.position.copy(Vw.clone().add(W(N).sub(Vw).multiplyScalar(0.25)));inner.add(cloudLow);
+const triC=W(CD[0]).add(W(CD[1])).add(W(CD[2])).multiplyScalar(1/3);
+const cloudE=new THREE.Mesh(new THREE.TorusGeometry(0.62,0.17,16,48),M.cloudE);cloudE.position.copy(Vw.clone().lerp(triC,0.55));cloudE.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),axis.clone());inner.add(cloudE);
+/* defect electrons */
+const perpN=new THREE.Vector3(1,-1,0).normalize().multiplyScalar(0.07);
+const donor=W([0.95,-0.35,0.2]);
+const before=[lobeTips[0],lobeTips[1],lobeTips[2],lpTip.clone().add(perpN),lpTip.clone().sub(perpN),donor];
+const eCtr=cloudE.position.clone();
+const u1=new THREE.Vector3(1,-1,0).normalize(),u2=axis.clone().cross(u1).normalize();
+const spinPos=[eCtr.clone().add(u1.clone().multiplyScalar(0.62)),eCtr.clone().add(u1.clone().multiplyScalar(-0.31)).add(u2.clone().multiplyScalar(0.54))];
+const lowA=cloudLow.position.clone().add(axis.clone().multiplyScalar(-0.12)),lowB=cloudLow.position.clone().add(axis.clone().multiplyScalar(0.16));
+const pA=[lowA.clone().add(u1.clone().multiplyScalar(0.07)),lowA.clone().add(u1.clone().multiplyScalar(-0.07))];
+const pB=[lowB.clone().add(u2.clone().multiplyScalar(0.07)),lowB.clone().add(u2.clone().multiplyScalar(-0.07))];
+const afterMinus=[spinPos[0],spinPos[1],pB[0],pA[0],pA[1],pB[1]];
+const afterZero=[spinPos[0],pB[0],pB[1],pA[0],pA[1],donor];
+const baseCol=['--dang','--dang','--dang','--nitro','--nitro','--extra'];
+const els=before.map((p,i)=>{const m=new THREE.Mesh(sphere(0.075),new THREE.MeshBasicMaterial({color:css(baseCol[i])}));m.position.copy(p);inner.add(m);return m;});
+const halo=els.map(e=>{const h=new THREE.Mesh(sphere(0.14),new THREE.MeshBasicMaterial({color:css('--spin'),transparent:true,opacity:0,depthWrite:false}));e.add(h);return h;});
+const spinArrows=[0,1].map(()=>{const a=new THREE.ArrowHelper(new THREE.Vector3(0,1,0),new THREE.Vector3(),0.42,new THREE.Color(css('--spin')),0.12,0.08);a.visible=false;inner.add(a);return a;});
+
+/* labels */
+const labs={};
+function mkLab(k,txt,cls){const d=document.createElement('div');d.className='lab'+(cls?' '+cls:'');d.textContent=txt;stage.appendChild(d);labs[k]=d;}
+mkLab('n','N');mkLab('v','vacancy');mkLab('c','C');mkLab('x','from a nearby nitrogen donor','extra');mkLab('s','the spin','spin');
+function place(k,v3,show){const d=labs[k];const p=v3.clone();inner.localToWorld(p);p.project(camera);const r=renderer.domElement;d.style.left=((p.x+1)/2*r.clientWidth)+'px';d.style.top=((1-p.y)/2*r.clientHeight)+'px';d.style.opacity=show?1:0;}
+
+/* state */
+let phase=0,target=0,charge=-1,t=0,auto=true;
+const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
+function update(){const k=ease(t),after=charge===-1?afterMinus:afterZero;const nE=charge===-1?6:5;
+ els.forEach((e,i)=>{if(i===5&&charge===0){e.visible=false;return;}e.visible=true;e.position.copy(before[i].clone().lerp(after[i],k));
+  const isSpin=(charge===-1?(i===0||i===1):(i===0));const fin=isSpin?css('--spin'):css('--pair');e.material.color.set(new THREE.Color(css(baseCol[i])).lerp(new THREE.Color(fin),k));halo[i].material.opacity=isSpin?0.28*k:0;});
+ lobes.forEach(l=>{l.material.opacity=(l.material===M.lp?0.22:0.28)*(1-k);});
+ M.cloudLow.opacity=0.16*k;M.cloudE.opacity=0.18*k;
+ const nSpin=charge===-1?2:1;spinArrows.forEach((a,i)=>{a.visible=k>0.85&&i<nSpin;a.position.copy(spinPos[i].clone().add(axis.clone().multiplyScalar(-0.21)));a.setDirection(axis);});
+}
+function labelsUpdate(){const k=ease(t);place('n',W(N).add(new THREE.Vector3(0,0,0)),true);place('v',W(V),k<0.5);place('c',W(CD[0]),true);
+ place('x',els[5].position,charge===-1&&k<0.4);place('s',spinPos[0],k>0.85);}
+
+/* counting panel */
+const lv=document.getElementById('lv');
+function arrowV(c,x,y,up,col){c.strokeStyle=col;c.fillStyle=col;c.lineWidth=2;const h=13;c.beginPath();c.moveTo(x,y+(up?h/2:-h/2));c.lineTo(x,y+(up?-h/2:h/2));c.stroke();const ty=y+(up?-h/2:h/2),s=up?1:-1;c.beginPath();c.moveTo(x,ty-2*s);c.lineTo(x-4,ty+4*s);c.lineTo(x+4,ty+4*s);c.closePath();c.fill();}
+function box(c,x,y,w,h,col,lw){c.strokeStyle=col;c.lineWidth=lw||1.5;c.strokeRect(x,y,w,h);}
+function drawLv(){const dpr=window.devicePixelRatio||1,w=lv.clientWidth,h=300;lv.style.height=h+'px';lv.width=w*dpr;lv.height=h*dpr;const c=lv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);
+ const ink=css('--ink'),ink2=css('--ink-2'),ink3=css('--ink-3'),dang=css('--dang'),nit=css('--nitro'),ext=css('--extra'),sp=css('--spin'),pr=css('--pair');
+ const k=ease(t),col0=w*0.05,colW=w*0.42,col1=w*0.53;
+ c.font='600 13px "IBM Plex Sans",sans-serif';c.textAlign='left';
+ c.globalAlpha=k<0.5?1:0.4;c.fillStyle=ink;c.fillText('Before: on their own atoms',col0,20);
+ const bw=28,bh=24;
+ c.font='12px "IBM Plex Sans",sans-serif';c.fillStyle=ink2;c.fillText('3 carbon dangling bonds',col0,58);
+ for(let i=0;i<3;i++){const x=col0+i*(bw+6);box(c,x,66,bw,bh,dang);arrowV(c,x+bw/2,66+bh/2,true,dang);}
+ c.fillStyle=ink2;c.fillText('nitrogen lone pair',col0,128);box(c,col0,136,bw,bh,nit);arrowV(c,col0+bw/2-5,136+bh/2,true,nit);arrowV(c,col0+bw/2+5,136+bh/2,false,nit);
+ if(charge===-1){c.fillStyle=ink2;c.fillText('captured from a donor',col0,198);box(c,col0,206,bw,bh,ext);arrowV(c,col0+bw/2,206+bh/2,true,ext);}
+ c.fillStyle=ink;c.font='500 12px "IBM Plex Sans",sans-serif';c.fillText((charge===-1?'3 + 2 + 1 = 6':'3 + 2 = 5')+' electrons',col0,262);
+ c.globalAlpha=k>0.5?1:0.4;
+ c.font='600 13px "IBM Plex Sans",sans-serif';c.fillStyle=ink;c.fillText('After: shared orbitals',col1,20);
+ const ys=[226,166,96];const lx=col1+8;
+ c.font='12px "IBM Plex Sans",sans-serif';c.fillStyle=ink2;
+ c.fillText('lowest',lx+bw+10,ys[0]+16);c.fillText('lower',lx+bw+10,ys[1]+16);c.fillText('two equal-energy orbitals',lx,ys[2]-10);
+ box(c,lx,ys[0],bw,bh,pr);arrowV(c,lx+bw/2-5,ys[0]+bh/2,true,pr);arrowV(c,lx+bw/2+5,ys[0]+bh/2,false,pr);
+ box(c,lx,ys[1],bw,bh,pr);arrowV(c,lx+bw/2-5,ys[1]+bh/2,true,pr);arrowV(c,lx+bw/2+5,ys[1]+bh/2,false,pr);
+ box(c,lx,ys[2],bw,bh,sp,2.2);box(c,lx+bw+6,ys[2],bw,bh,charge===-1?sp:ink3,charge===-1?2.2:1.5);
+ arrowV(c,lx+bw/2,ys[2]+bh/2,true,sp);if(charge===-1)arrowV(c,lx+bw+6+bw/2,ys[2]+bh/2,true,sp);
+ c.fillStyle=sp;c.font='500 12px "IBM Plex Sans",sans-serif';c.fillText(charge===-1?'2 unpaired, parallel: spin 1':'1 unpaired: spin ½',lx,ys[2]+bh+18);
+ c.globalAlpha=1;
+ c.strokeStyle=css('--line-2');c.setLineDash([3,4]);c.beginPath();c.moveTo(w*0.49,10);c.lineTo(w*0.49,h-10);c.stroke();c.setLineDash([]);
+ const after=k>0.5;
+ document.getElementById('o-n').textContent=charge===-1?'6':'5';
+ document.getElementById('o-u').textContent=after?(charge===-1?'2':'1'):(charge===-1?'3 + 1 (before)':'3 (before)');
+ document.getElementById('o-s').textContent=after?(charge===-1?'1':'½'):'–';
+ document.getElementById('o-st').textContent=after?(charge===-1?'3: 0, +1, −1':'2: up, down'):'–';
+ document.getElementById('ex').innerHTML=!after
+  ?'Each carbon next to the vacancy has <b>one electron</b> in a bond pointing into the hole. The nitrogen points its <b>lone pair</b> into the same hole.'+(charge===-1?' NV⁻ also holds <b>one extra electron</b> taken from a nearby nitrogen donor.':' In NV⁰ there is no extra electron.')+' Press “After overlap”.'
+  :(charge===-1?'All four orbitals point into the same small hole, so they merge into four shared orbitals. Six electrons fill them from the bottom: four pair up, and the last <b>two</b> go into the two equal-energy orbitals with <b>parallel spins</b> (Hund’s rule). Those two make the NV’s spin 1.':'With only five electrons, one of the two equal-energy orbitals stays empty. Just <b>one</b> electron is unpaired, so the spin is ½, with only two states. No useful three-level structure, which is why NV⁻ is the one used for sensing.');
+}
+
+/* interaction */
+function setPhase(p){target=p;document.querySelectorAll('#phase button').forEach(b=>b.classList.toggle('on',+b.dataset.p===p));}
+document.querySelectorAll('#phase button').forEach(b=>b.onclick=()=>setPhase(+b.dataset.p));
+document.querySelectorAll('#charge button').forEach(b=>b.onclick=()=>{charge=+b.dataset.c;document.querySelectorAll('#charge button').forEach(x=>x.classList.toggle('on',x===b));update();drawLv();});
+document.getElementById('bonds').onchange=e=>{bondPairs.visible=e.target.checked;};
+document.getElementById('rot').onchange=e=>{auto=e.target.checked;};
+let drag=null;const el=renderer.domElement;el.style.touchAction='none';
+el.addEventListener('pointerdown',e=>{drag=[e.clientX,e.clientY];el.setPointerCapture(e.pointerId);stage.style.cursor='grabbing';});
+el.addEventListener('pointermove',e=>{if(!drag)return;outer.rotation.y+=(e.clientX-drag[0])*0.01;outer.rotation.x=Math.max(-1.3,Math.min(1.3,outer.rotation.x+(e.clientY-drag[1])*0.01));drag=[e.clientX,e.clientY];});
+const end=()=>{drag=null;stage.style.cursor='grab';};el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
+function size(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();drawLv();}
+window.addEventListener('resize',size);
+const mq=window.matchMedia('(prefers-color-scheme: dark)');if(mq.addEventListener)mq.addEventListener('change',()=>location.reload());
+outer.rotation.set(0.25,0.4,0);
+let last=performance.now();
+function loop(now){const dt=Math.min(0.05,(now-last)/1000);last=now;
+ if(t!==target){const s=dt/1.3;t=target>t?Math.min(target,t+s):Math.max(target,t-s);update();drawLv();}
+ if(auto&&!drag)outer.rotation.y+=0.003;
+ renderer.render(scene,camera);labelsUpdate();requestAnimationFrame(loop);}
+size();update();drawLv();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

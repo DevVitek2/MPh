@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Physics Textbook</title>
+<style>
+  :root { --bg:#faf8f4; --fg:#1d1d1f; --muted:#6b6b70; --card:#ffffff; --line:#e6e2da; --accent:#2f5bd3; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#121214; --fg:#ececef; --muted:#9a9aa2; --card:#1c1c20; --line:#2c2c33; --accent:#8aa8ff; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:17px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width:680px; margin:0 auto; padding:40px 16px 64px; }
+  h1 { font:600 2rem/1.15 Georgia, serif; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 32px; font-size:.95rem; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px 18px 10px; margin-bottom:16px; }
+  h2 { font:600 1.2rem/1.3 Georgia, serif; margin:0 0 8px; display:flex; align-items:center; gap:10px; }
+  .n { font:600 .8rem system-ui; color:var(--accent); border:1.5px solid var(--accent); border-radius:50%; width:26px; height:26px; display:inline-grid; place-items:center; flex:none; }
+  ol { margin:0; padding:0; list-style:none; }
+  li a { display:block; padding:11px 0; border-top:1px solid var(--line); color:var(--fg); text-decoration:none; }
+  li:first-child a { border-top:none; }
+  li a::after { content:"›"; float:right; color:var(--muted); }
+  li a:active, li a:hover { color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Physics Textbook</h1>
+  <p class="sub">2 chapters · 5 pages</p>
+  <section>
+    <h2><span class="n">1</span>Ion trap</h2>
+    <ol>
+      <li><a href="Ion-trap/other-electrodes.html">Ion trap explorer: what the other electrodes do</a></li>
+      <li><a href="Ion-trap/ring-paul-trap-3d-explorer.html">Ring paul trap 3d explorer</a></li>
+      <li><a href="Ion-trap/ring-paul-trap-force-explorer.html">Ring paul trap force explorer</a></li>
+    </ol>
+  </section>
+  <section>
+    <h2><span class="n">2</span>NV center</h2>
+    <ol>
+      <li><a href="NV-center/inside-the-nv-center.html">Inside the NV center: where the spin comes from</a></li>
+      <li><a href="NV-center/triangle-of-pendulums.html">Why two orbitals have equal energy: the triangle of pendulums</a></li>
+    </ol>
+  </section>
+</main>
+</body>
+</html>

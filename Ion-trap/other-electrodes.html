@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ion trap explorer: what the other electrodes do</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F4F6; --panel:#FFFFFF; --ink:#16202B; --ink-2:#4B5866; --ink-3:#7D8996;
+  --line:#D7DDE3; --line-2:#B9C2CB;
+  --plus:#D9483B; --minus:#2F6FDB; --ion:#7A5AE0; --avg:#12937A; --dc:#B8861B;
+  --accent-bg:#E4ECFB; --accent-ink:#1E4FA8; --danger:#C2362B; --ok:#12805F;
+  color-scheme: light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F151C; --panel:#17202A; --ink:#E5EAF0; --ink-2:#A8B3BF; --ink-3:#7A8693;
+    --line:#26323E; --line-2:#3A4856;
+    --plus:#F0675A; --minus:#5B93F0; --ion:#9C84F2; --avg:#2DBB9B; --dc:#D9A93E;
+    --accent-bg:#1E2F4D; --accent-ink:#A9C5F5; --danger:#F07468; --ok:#4CC79F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F151C; --panel:#17202A; --ink:#E5EAF0; --ink-2:#A8B3BF; --ink-3:#7A8693;
+  --line:#26323E; --line-2:#3A4856;
+  --plus:#F0675A; --minus:#5B93F0; --ion:#9C84F2; --avg:#2DBB9B; --dc:#D9A93E;
+  --accent-bg:#1E2F4D; --accent-ink:#A9C5F5; --danger:#F07468; --ok:#4CC79F;
+  color-scheme: dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.55;font-variant-numeric:tabular-nums}
+.wrap{max-width:1120px;margin:0 auto;padding:20px 16px 40px}
+header h1{font-size:26px;font-weight:600;letter-spacing:-0.01em;margin:4px 0 4px;line-height:1.2}
+header p{margin:0 0 18px;color:var(--ink-2);max-width:62ch}
+.layout{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+@media (min-width:880px){.layout{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}.stage{position:sticky;top:calc(12px + env(safe-area-inset-top,0px));align-self:start}}
+.stage canvas{display:block;width:100%;touch-action:none;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+#pl{margin-top:10px;touch-action:auto}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 2px 0;font-size:13px;color:var(--ink-2)}
+.legend i{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.cap{font-size:13px;color:var(--ink-2);margin:6px 2px 0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.group{padding:12px 0;border-top:1px solid var(--line)}
+.group:first-child{border-top:0;padding-top:0}
+.group h2{font-size:15px;font-weight:600;margin:0 0 8px}
+.note{font-size:14px;color:var(--ink-2);margin:8px 0 0}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+button{font:inherit;font-size:14px;color:var(--ink);background:transparent;border:1px solid var(--line-2);border-radius:8px;padding:7px 12px;cursor:pointer;min-height:38px}
+button:hover{background:var(--bg)}
+button.on{background:var(--accent-bg);color:var(--accent-ink);border-color:var(--accent-ink)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+label.chk{font-size:14px;color:var(--ink-2);display:flex;align-items:center;gap:6px;min-height:32px}
+.sl{display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr) 4.2em;gap:10px;align-items:center;margin:6px 0}
+.sl span{font-size:14px;color:var(--ink-2)}
+.sl output{font-size:14px;font-weight:500;text-align:right}
+input[type=range]{width:100%;accent-color:var(--accent-ink)}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.stat{background:var(--bg);border-radius:10px;padding:8px 10px}
+.stat .k{font-size:12px;color:var(--ink-2)}
+.stat .v{font-size:17px;font-weight:600}
+ul.try{margin:0;padding-left:1.1em;color:var(--ink-2);font-size:14px}
+ul.try li{margin:4px 0}
+.disabled{opacity:.45;pointer-events:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>Ion trap explorer: what the other electrodes do</h1>
+<p>Same physics as the ring, now with endcaps, extra DC, stray charges and ejection. Drag the ion, run it, and watch how the bowl under it changes.</p>
+</header>
+<div class="layout">
+<section class="stage" aria-label="Trap view">
+<canvas id="cv" aria-label="Side cut through the trap with the ion and force arrows"></canvas>
+<div class="legend">
+<span><i style="background:var(--plus)"></i>force now</span>
+<span><i style="background:var(--avg)"></i>average push (scaled up)</span>
+<span><i style="background:var(--dc)"></i>DC electrode</span>
+</div>
+<canvas id="pl" aria-label="Trap bowl along two directions"></canvas>
+<p class="cap" id="plcap">The bowl: how hard it is to move the ion away from the center, along each direction. A curve that keeps rising holds; one that turns over leaks.</p>
+</section>
+
+<section class="panel" aria-label="Controls">
+<div class="group">
+<h2>Trap</h2>
+<div class="seg" id="geoms">
+<button data-g="ring">Ring only</button>
+<button data-g="ideal" class="on">Ring + endcaps</button>
+<button data-g="linear">Linear trap</button>
+</div>
+<p class="note" id="gnote"></p>
+</div>
+
+<div class="group">
+<h2>Voltage on the flipping electrodes</h2>
+<div class="seg" id="modes">
+<button data-m="plus">Static +</button>
+<button data-m="minus">Static −</button>
+<button data-m="ac" class="on">Flipping</button>
+</div>
+<div class="sl"><span>Flip speed</span><input type="range" id="w" min="0.5" max="12" step="0.1" value="5"><output id="w-o">5.0</output></div>
+</div>
+
+<div class="group">
+<h2>Run</h2>
+<div class="row">
+<button id="play">Run</button>
+<button id="reset">Reset</button>
+<button id="eject">Eject to detector</button>
+</div>
+<div class="row" style="margin-top:6px">
+<label class="chk"><input type="checkbox" id="drag"> Air drag</label>
+<label class="chk"><input type="checkbox" id="grid"> Field arrows</label>
+</div>
+</div>
+
+<div class="group" id="dcgroup">
+<h2>DC tuning</h2>
+<div class="sl"><span id="dc-label">Extra DC on endcaps</span><input type="range" id="dc" min="-0.03" max="0.03" step="0.001" value="0"><output id="dc-o">0.000</output></div>
+<div class="row"><label class="chk"><input type="checkbox" id="stray"> Stray charge nearby</label></div>
+<div class="sl"><span>Correction DC</span><input type="range" id="comp" min="-0.003" max="0.003" step="0.0001" value="0"><output id="comp-o">0.0000</output></div>
+</div>
+
+<div class="group">
+<div class="stats">
+<div class="stat"><div class="k">Distance from center</div><div class="v" id="o-r">0</div></div>
+<div class="stat"><div class="k">Shake size</div><div class="v" id="o-sh">0</div></div>
+<div class="stat"><div class="k">Flipping electrodes now</div><div class="v" id="o-s">+</div></div>
+<div class="stat"><div class="k">Status</div><div class="v" id="o-st">Paused</div></div>
+</div>
+</div>
+
+<div class="group">
+<h2>Try this</h2>
+<ul class="try" id="try"></ul>
+</div>
+</section>
+</div>
+</div>
+
+<script>
+(function(){
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const pl=document.getElementById('pl'),pc=pl.getContext('2d');
+const N=96,R=1,cs=[],sn=[];
+for(let i=0;i<N;i++){cs.push(Math.cos(2*Math.PI*i/N));sn.push(Math.sin(2*Math.PI*i/N));}
+function ringE(x,z){let ex=0,ez=0;for(let i=0;i<N;i++){const dx=x-R*cs[i],dy=-R*sn[i],r2=dx*dx+dy*dy+z*z+1e-3,inv=1/(r2*Math.sqrt(r2));ex+=dx*inv;ez+=z*inv;}return[ex/N,ez/N];}
+
+const NOTES={
+ ring:'The ring alone. The room acts as the second electrode, so the field is only roughly right near the center, and the trap leaks along the axis.',
+ ideal:'Ring plus two endcaps, shaped so the force grows with distance everywhere inside. The flipping voltage runs between ring and endcaps. Extra DC on the endcaps tilts the balance between directions.',
+ linear:'Side view of a linear trap. Two of the four long rods are visible; they flip and hold the ion sideways. The end electrodes carry pure DC and hold it along the length.'
+};
+const TRY={
+ ring:['Start the ion at height 1.0 on the axis and run: it leaks out, and the axis bowl curve turns over.','Switch to “Ring + endcaps” with the same start: now it stays.'],
+ ideal:['Run with flipping: both bowl curves rise all the way to the electrodes, so there is no leak.','Push “Extra DC on endcaps” to +0.015: the sideways bowl turns upside down and the ion escapes sideways. Try −0.025 for the axis.','Turn on the stray charge: the ion settles off-center and its shake grows. Slide the correction DC until the shake shrinks again.','Press “Eject to detector”: a DC pulse throws it out through the hole in the top endcap.'],
+ linear:['Start the ion off-center along the length and run: along the length it moves smoothly with no shake, because only DC acts there.','Set the end DC to 0: nothing holds it along the length any more.','Raise the end DC past about 0.04: the DC pushes outward sideways harder than the flipping field holds, and it hits a rod.','Press “Eject to detector” to push it out through the end electrode.']
+};
+const START={ring:[0.35,0.45],ideal:[0.35,0.4],linear:[1.2,0.2]};
+const DCR={ideal:{min:-0.03,max:0.03,step:0.001,val:0,label:'Extra DC on endcaps'},linear:{min:0,max:0.06,step:0.001,val:0.02,label:'DC on end electrodes'}};
+
+let geom='ideal',mode='ac',w=5,U=0,dragOn=false,gridOn=false,strayOn=false,comp=0,ejectOn=false;
+let playing=false,status='Paused',statusKind='',t=0,trail=[],dragging=false;
+let start=START.ideal.slice(),st={x:start[0],z:start[1],vx:0,vz:0};
+const STRAY=0.0015;
+
+function sig(tt){return mode==='plus'?1:mode==='minus'?-1:Math.cos(w*tt);}
+function rfE(x,z){if(geom==='ring')return ringE(x,z);if(geom==='ideal')return[-x/2,z];return[0,z];}
+function dcA(x,z){if(geom==='ideal')return[U*x/2,-U*z];if(geom==='linear')return[-U*x,U*z/2];return[0,0];}
+function dcPhi(x,z){if(geom==='ideal')return U*(z*z/2-x*x/4);if(geom==='linear')return U*(x*x/2-z*z/4);return 0;}
+function sdir(){return geom==='linear'?[0,1]:[1,0];}
+function uni(){return(strayOn?STRAY:0)+comp;}
+function ejA(){if(!ejectOn)return[0,0];if(geom==='ideal')return[0,0.5];if(geom==='linear')return[0.3,0];return[0,0];}
+function staticA(x,z){const d=dcA(x,z),u=uni(),sd=sdir(),e=ejA();return[d[0]+u*sd[0]+e[0],d[1]+u*sd[1]+e[1]];}
+function acc(x,z,vx,vz,tt){const e=rfE(x,z),s=sig(tt),a=staticA(x,z),g=dragOn?0.15:0;return[s*e[0]+a[0]-g*vx,s*e[1]+a[1]-g*vz];}
+function pseudo(x,z){const e=rfE(x,z);return(e[0]*e[0]+e[1]*e[1])/(4*w*w);}
+function avgA(x,z){const h=0.01,a=staticA(x,z);let gx=0,gz=0;if(mode==='ac'){gx=(pseudo(x+h,z)-pseudo(x-h,z))/(2*h);gz=(pseudo(x,z+h)-pseudo(x,z-h))/(2*h);}else{const e=rfE(x,z),s=sig(0);a[0]+=s*e[0];a[1]+=s*e[1];}return[a[0]-gx,a[1]-gz];}
+
+function step(dt){const s=st,tt=t;
+ const k1=acc(s.x,s.z,s.vx,s.vz,tt);
+ const x2=s.x+s.vx*dt/2,z2=s.z+s.vz*dt/2,u2=s.vx+k1[0]*dt/2,v2=s.vz+k1[1]*dt/2,k2=acc(x2,z2,u2,v2,tt+dt/2);
+ const x3=s.x+u2*dt/2,z3=s.z+v2*dt/2,u3=s.vx+k2[0]*dt/2,v3=s.vz+k2[1]*dt/2,k3=acc(x3,z3,u3,v3,tt+dt/2);
+ const x4=s.x+u3*dt,z4=s.z+v3*dt,u4=s.vx+k3[0]*dt,v4=s.vz+k3[1]*dt,k4=acc(x4,z4,u4,v4,tt+dt);
+ s.x+=dt/6*(s.vx+2*u2+2*u3+u4);s.z+=dt/6*(s.vz+2*v2+2*v3+v4);
+ s.vx+=dt/6*(k1[0]+2*k2[0]+2*k3[0]+k4[0]);s.vz+=dt/6*(k1[1]+2*k2[1]+2*k3[1]+k4[1]);t+=dt;}
+
+function check(){const x=st.x,z=st.z;
+ if(geom==='ring'){if(Math.hypot(Math.abs(x)-R,z)<0.06)return['Hit the ring','bad'];if(Math.hypot(x,z)>2.7)return['Escaped','bad'];return null;}
+ if(geom==='ideal'){if(x*x-2*z*z>=1)return['Hit the ring','bad'];if(z*z-x*x/2>=0.5){if(Math.abs(x)<0.15&&z>0)return['Ejected to detector','ok'];return['Hit an endcap','bad'];}return null;}
+ if(Math.abs(z)>=0.7)return['Hit a rod','bad'];
+ if(Math.abs(x)>=2.3){if(Math.abs(z)<0.15&&x>0)return['Ejected to detector','ok'];return['Hit an end electrode','bad'];}
+ return null;}
+
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let W=400,H=400,sc=1,dpr=1,grid=[];
+function buildGrid(){grid=[];for(let i=0;i<15;i++)for(let j=0;j<15;j++){const x=-2.52+i*0.36,z=-2.52+j*0.36;if(geom==='ring'&&Math.hypot(Math.abs(x)-R,z)<0.15)continue;if(geom==='ideal'&&(x*x-2*z*z>1||z*z-x*x/2>0.5))continue;if(geom==='linear'&&(Math.abs(z)>0.66||Math.abs(x)>2.25))continue;grid.push([x,z,rfE(x,z)]);}}
+function size(){dpr=window.devicePixelRatio||1;W=cv.clientWidth;H=Math.round(W*0.92);cv.style.height=H+'px';cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);sc=W/5.8;
+ pl.style.height='150px';pl.width=W*dpr;pl.height=150*dpr;pc.setTransform(dpr,0,0,dpr,0,0);}
+const px=x=>W/2+x*sc,pz=z=>H/2-z*sc;
+
+function arrow(c,x0,y0,dx,dy,col,lw,dash){const L=Math.hypot(dx,dy);if(L<1.5)return;c.save();c.strokeStyle=col;c.fillStyle=col;c.lineWidth=lw;c.setLineDash(dash||[]);c.beginPath();c.moveTo(x0,y0);c.lineTo(x0+dx,y0+dy);c.stroke();c.setLineDash([]);const a=Math.atan2(dy,dx),hs=Math.min(8,L*0.5);c.beginPath();c.moveTo(x0+dx,y0+dy);c.lineTo(x0+dx-hs*Math.cos(a-0.45),y0+dy-hs*Math.sin(a-0.45));c.lineTo(x0+dx-hs*Math.cos(a+0.45),y0+dy-hs*Math.sin(a+0.45));c.closePath();c.fill();c.restore();}
+function sgnTxt(s){return s>=0?'+':'−';}
+function badge(x,y,col,txt){ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,9,0,2*Math.PI);ctx.fill();ctx.fillStyle='#fff';ctx.font='600 13px "IBM Plex Sans",sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,x,y+1);}
+function label(txt,x,y,col,align){ctx.fillStyle=col;ctx.font='12px "IBM Plex Sans",sans-serif';ctx.textAlign=align||'left';ctx.textBaseline='alphabetic';ctx.fillText(txt,x,y);}
+
+function drawElectrodes(s,C){
+ const ringCol=s>=0?C.plus:C.minus,oppCol=s>=0?C.minus:C.plus;
+ if(geom==='ring'){
+  ctx.save();ctx.strokeStyle=ringCol;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(px(0),pz(0),R*sc,0.13*R*sc,0,0,2*Math.PI);ctx.stroke();ctx.restore();
+  badge(px(-R),pz(0),ringCol,sgnTxt(s));badge(px(R),pz(0),ringCol,sgnTxt(s));
+  label('ring',px(R)+12,pz(0)+18,C.ink2);return;}
+ if(geom==='ideal'){
+  ctx.save();ctx.lineWidth=5;ctx.lineCap='round';
+  ctx.strokeStyle=ringCol;for(const sx of[-1,1]){ctx.beginPath();for(let i=0;i<=60;i++){const z=-1.25+2.5*i/60,x=sx*Math.sqrt(1+2*z*z);i?ctx.lineTo(px(x),pz(z)):ctx.moveTo(px(x),pz(z));}ctx.stroke();}
+  ctx.strokeStyle=oppCol;for(const sz of[-1,1])for(const sx of[-1,1]){ctx.beginPath();for(let i=0;i<=50;i++){const x=sx*(0.15+2.4*i/50),z=sz*Math.sqrt(0.5+x*x/2);i?ctx.lineTo(px(x),pz(z)):ctx.moveTo(px(x),pz(z));}ctx.stroke();}
+  if(U!==0){ctx.strokeStyle=C.dc;ctx.lineWidth=2;ctx.setLineDash([4,4]);for(const sz of[-1,1])for(const sx of[-1,1]){ctx.beginPath();for(let i=0;i<=50;i++){const x=sx*(0.15+2.4*i/50),z=sz*(Math.sqrt(0.5+x*x/2)+0.09);i?ctx.lineTo(px(x),pz(z)):ctx.moveTo(px(x),pz(z));}ctx.stroke();}ctx.setLineDash([]);}
+  ctx.restore();
+  badge(px(1),pz(0),ringCol,sgnTxt(s));badge(px(-1),pz(0),ringCol,sgnTxt(s));
+  badge(px(0.75),pz(Math.sqrt(0.5+0.28)),oppCol,sgnTxt(-s));badge(px(0.75),pz(-Math.sqrt(0.5+0.28)),oppCol,sgnTxt(-s));
+  label('ring',px(1.25),pz(0)+4,C.ink2);label('endcap',px(1.0),pz(1.12),C.ink2);
+  ctx.save();ctx.strokeStyle=C.line2;ctx.lineWidth=1;ctx.strokeRect(px(-0.35),pz(2.45),0.7*sc,0.32*sc);ctx.restore();label('detector',px(0),pz(2.45)-6,C.ink2,'center');
+  return;}
+ ctx.save();ctx.fillStyle=oppCol;for(const sz of[-1,1]){ctx.fillRect(px(-2.15),pz(sz>0?0.84:-0.7),4.3*sc,0.14*sc);}ctx.restore();
+ badge(px(-1.6),pz(0.77),oppCol,sgnTxt(-s));badge(px(-1.6),pz(-0.77),oppCol,sgnTxt(-s));
+ label('rods (flipping)',px(-0.9),pz(0.98),C.ink2);
+ ctx.save();ctx.fillStyle=C.dc;for(const sx of[-1,1])for(const sz of[-1,1]){const zt=sz>0?0.75:-0.15;ctx.fillRect(px(sx*2.3)-(sx>0?0:6),pz(zt),6,0.6*sc);}ctx.restore();
+ label('DC',px(-2.3)-4,pz(0.92),C.dc,'center');label('DC',px(2.3)+3,pz(0.92),C.dc,'center');
+ ctx.save();ctx.strokeStyle=C.line2;ctx.lineWidth=1;ctx.strokeRect(px(2.48),pz(0.3),0.3*sc,0.6*sc);ctx.restore();label('detector',px(2.63),pz(0.3)-6,C.ink2,'center');
+}
+
+function draw(){
+ const C={plus:css('--plus'),minus:css('--minus'),ion:css('--ion'),avg:css('--avg'),dc:css('--dc'),ink2:css('--ink-2'),ink3:css('--ink-3'),line:css('--line'),line2:css('--line-2')};
+ ctx.clearRect(0,0,W,H);const s=sig(t);
+ ctx.save();ctx.strokeStyle=C.line2;ctx.setLineDash([4,5]);ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(px(0),0);ctx.lineTo(px(0),H);ctx.moveTo(0,pz(0));ctx.lineTo(W,pz(0));ctx.stroke();ctx.restore();
+ if(geom==='linear'){label('along the length',8,pz(0)-6,C.ink3);label('sideways',px(0)+6,14,C.ink3);}else{label('axis',px(0)+6,14,C.ink3);label('ring plane',8,pz(0)-6,C.ink3);}
+ if(gridOn){for(const g of grid){const e=g[2],m=Math.hypot(e[0],e[1]);if(m<1e-6)continue;const L=Math.min(13,22*Math.sqrt(m))*Math.abs(s),sg=s>=0?1:-1;arrow(ctx,px(g[0]),pz(g[1]),e[0]/m*L*sg,-e[1]/m*L*sg,C.ink3,1);}}
+ drawElectrodes(s,C);
+ if(trail.length>1){ctx.save();ctx.strokeStyle=C.ion;ctx.globalAlpha=0.45;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(px(trail[0][0]),pz(trail[0][1]));for(const p of trail)ctx.lineTo(px(p[0]),pz(p[1]));ctx.stroke();ctx.restore();}
+ const e=rfE(st.x,st.z),a=staticA(st.x,st.z),f=[s*e[0]+a[0],s*e[1]+a[1]],fm=Math.hypot(f[0],f[1]),Lf=Math.min(110,100*fm);
+ if(fm>1e-7)arrow(ctx,px(st.x),pz(st.z),f[0]/fm*Lf,-f[1]/fm*Lf,C.plus,2.5);
+ if(mode==='ac'){const g=avgA(st.x,st.z),gm=Math.hypot(g[0],g[1]),Lg=Math.min(110,100*gm*2*w*w);if(gm>1e-9)arrow(ctx,px(st.x),pz(st.z),g[0]/gm*Lg,-g[1]/gm*Lg,C.avg,2,[5,4]);}
+ ctx.fillStyle=C.ion;ctx.beginPath();ctx.arc(px(st.x),pz(st.z),8,0,2*Math.PI);ctx.fill();ctx.fillStyle='#fff';ctx.font='600 12px "IBM Plex Sans",sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('+',px(st.x),pz(st.z)+1);
+ document.getElementById('o-r').textContent=Math.hypot(st.x,st.z).toFixed(2)+' R';
+ document.getElementById('o-sh').textContent=(Math.hypot(e[0],e[1])/(w*w)).toFixed(4);
+ const os=document.getElementById('o-s');os.textContent=mode==='ac'?sgnTxt(s)+' ('+s.toFixed(2)+')':sgnTxt(s);os.style.color=s>=0?C.plus:C.minus;
+ const o=document.getElementById('o-st');o.textContent=status;o.style.color=statusKind==='bad'?css('--danger'):statusKind==='ok'?css('--ok'):css('--ink');
+}
+
+function bowlCurves(){
+ let ax,sd,axLim,sdLim,axName,sdName;
+ if(geom==='linear'){ax=u=>[u,0];sd=u=>[0,u];axLim=2.3;sdLim=0.7;axName='along the length';sdName='sideways';}
+ else{ax=u=>[0,u];sd=u=>[u,0];axName='along the axis';sdName='sideways';
+  if(geom==='ring'){axLim=2.4;sdLim=0.9;}else{axLim=Math.SQRT1_2;sdLim=1;}}
+ const u0=uni(),dir=sdir();
+ const Phi=(x,z)=>(mode==='ac'?pseudo(x,z):0)+dcPhi(x,z)-u0*(dir[0]*x+dir[1]*z);
+ const mk=(fn,lim)=>{const pts=[];for(let i=0;i<=160;i++){const u=-lim+2*lim*i/160,p=fn(u);pts.push([u,Phi(p[0],p[1])]);}return pts;};
+ return{a:mk(ax,axLim),b:mk(sd,sdLim),axName,sdName,axLim,sdLim};
+}
+function drawPlot(){
+ const C={ink2:css('--ink-2'),ink3:css('--ink-3'),line:css('--line'),line2:css('--line-2'),plus:css('--plus'),ion:css('--ion'),panel:css('--panel')};
+ const PW=W,PH=150;pc.clearRect(0,0,PW,PH);
+ pc.fillStyle=C.panel;pc.strokeStyle=C.line;pc.lineWidth=1;pc.beginPath();if(pc.roundRect)pc.roundRect(0.5,0.5,PW-1,PH-1,14);else pc.rect(0.5,0.5,PW-1,PH-1);pc.fill();pc.stroke();
+ const B=bowlCurves();let ymax=1e-9,ymin=0;
+ for(const c of[B.a,B.b])for(const p of c){if(Math.abs(p[0])<=0.75){ymax=Math.max(ymax,p[1]);ymin=Math.min(ymin,p[1]);}}
+ ymax=ymax*1.6+1e-9;ymin=Math.min(ymin*1.4,-ymax*0.25);
+ const L=10,Rr=PW-10,T=24,Bt=PH-12,xs=u=>(L+Rr)/2+u*(Rr-L)/5.6,ys=v=>Bt-(Math.max(ymin,Math.min(ymax,v))-ymin)/(ymax-ymin)*(Bt-T);
+ pc.strokeStyle=C.line2;pc.setLineDash([3,4]);pc.beginPath();pc.moveTo(L,ys(0));pc.lineTo(Rr,ys(0));pc.moveTo(xs(0),T-6);pc.lineTo(xs(0),Bt);pc.stroke();pc.setLineDash([]);
+ const line=(pts,col)=>{pc.strokeStyle=col;pc.lineWidth=2.2;pc.beginPath();pts.forEach((p,i)=>{const X=xs(p[0]),Y=ys(p[1]);i?pc.lineTo(X,Y):pc.moveTo(X,Y);});pc.stroke();};
+ line(B.a,C.plus);line(B.b,C.ion);
+ pc.fillStyle=C.ink3;for(const lim of[B.axLim,B.sdLim]){if(geom==='ring'&&lim===B.axLim)continue;for(const sg of[-1,1]){pc.fillRect(xs(sg*lim)-0.5,Bt-8,1,8);}}
+ pc.font='12px "IBM Plex Sans",sans-serif';pc.textBaseline='alphabetic';pc.textAlign='left';
+ pc.fillStyle=C.plus;pc.fillText('— '+B.axName,L+4,16);const w1=pc.measureText('— '+B.axName).width;
+ pc.fillStyle=C.ion;pc.fillText('— '+B.sdName,L+14+w1,16);
+ pc.fillStyle=C.ink3;pc.textAlign='right';pc.fillText(mode==='ac'?'ticks: electrode positions':'static: no bowl from flipping',Rr-4,16);
+}
+
+let last=null;
+function loop(ts){if(last===null)last=ts;const dtr=Math.min(0.05,(ts-last)/1000);last=ts;
+ if(playing&&!dragging){let simT=dtr*6;const h=Math.min(0.01,(2*Math.PI/w)/80);while(simT>0){const d=Math.min(h,simT);step(d);simT-=d;const c=check();if(c){status=c[0];statusKind=c[1];playing=false;setPlay();break;}}
+  trail.push([st.x,st.z]);if(trail.length>600)trail.shift();}
+ draw();drawPlot();requestAnimationFrame(loop);}
+
+const playB=document.getElementById('play');
+function setPlay(){playB.textContent=playing?'Pause':'Run';if(playing){status='Running';statusKind='';}else if(!statusKind)status='Paused';}
+function doReset(){st={x:start[0],z:start[1],vx:0,vz:0};t=0;trail=[];ejectOn=false;statusKind='';status='Paused';}
+playB.onclick=()=>{if(statusKind)doReset();playing=!playing;setPlay();};
+document.getElementById('reset').onclick=()=>{doReset();playing=false;setPlay();};
+document.getElementById('eject').onclick=()=>{if(geom==='ring')return;if(statusKind)doReset();ejectOn=true;playing=true;setPlay();};
+document.getElementById('drag').onchange=e=>dragOn=e.target.checked;
+document.getElementById('grid').onchange=e=>gridOn=e.target.checked;
+document.getElementById('stray').onchange=e=>strayOn=e.target.checked;
+function bind(id,dig,fn){const s=document.getElementById(id),o=document.getElementById(id+'-o');s.addEventListener('input',()=>{const v=parseFloat(s.value);o.textContent=v.toFixed(dig);fn(v);});}
+bind('w',1,v=>w=v);bind('dc',3,v=>U=v);bind('comp',4,v=>comp=v);
+
+function setModeBtns(){document.querySelectorAll('#modes button').forEach(b=>b.classList.toggle('on',b.dataset.m===mode));}
+document.querySelectorAll('#modes button').forEach(b=>b.onclick=()=>{mode=b.dataset.m;setModeBtns();});
+function setGeom(g){geom=g;document.querySelectorAll('#geoms button').forEach(b=>b.classList.toggle('on',b.dataset.g===g));
+ document.getElementById('gnote').textContent=NOTES[g];
+ const tl=document.getElementById('try');tl.innerHTML='';TRY[g].forEach(s=>{const li=document.createElement('li');li.textContent=s;tl.appendChild(li);});
+ const dcg=document.getElementById('dcgroup'),ej=document.getElementById('eject'),dc=document.getElementById('dc');
+ if(g==='ring'){dcg.classList.add('disabled');ej.classList.add('disabled');U=0;}
+ else{dcg.classList.remove('disabled');ej.classList.remove('disabled');const r=DCR[g];dc.min=r.min;dc.max=r.max;dc.step=r.step;dc.value=r.val;U=r.val;document.getElementById('dc-o').textContent=r.val.toFixed(3);document.getElementById('dc-label').textContent=r.label;}
+ strayOn=false;document.getElementById('stray').checked=false;comp=0;document.getElementById('comp').value=0;document.getElementById('comp-o').textContent='0.0000';
+ start=START[g].slice();doReset();playing=false;setPlay();buildGrid();}
+document.querySelectorAll('#geoms button').forEach(b=>b.onclick=()=>setGeom(b.dataset.g));
+
+function toWorld(ev){const r=cv.getBoundingClientRect();return[(ev.clientX-r.left-W/2)/sc,-(ev.clientY-r.top-H/2)/sc];}
+cv.addEventListener('pointerdown',ev=>{dragging=true;cv.setPointerCapture(ev.pointerId);const p=toWorld(ev);st={x:p[0],z:p[1],vx:0,vz:0};trail=[];ejectOn=false;if(statusKind){statusKind='';status=playing?'Running':'Paused';}});
+cv.addEventListener('pointermove',ev=>{if(!dragging)return;const p=toWorld(ev);st.x=p[0];st.z=p[1];st.vx=0;st.vz=0;});
+const up=()=>{if(!dragging)return;dragging=false;start=[st.x,st.z];t=0;};
+cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+window.addEventListener('resize',size);
+size();setGeom('ideal');requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

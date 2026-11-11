@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Penning trap explorer: static voltage plus a magnet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F4F6; --panel:#FFFFFF; --ink:#16202B; --ink-2:#4B5866; --ink-3:#7D8996;
+  --line:#D7DDE3; --line-2:#B9C2CB;
+  --plus:#D9483B; --minus:#2F6FDB; --ion:#7A5AE0; --coil:#B8861B; --field:#12937A;
+  --accent-bg:#E4ECFB; --accent-ink:#1E4FA8; --ok:#12805F; --bad:#C2362B;
+  color-scheme: light; box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F151C; --panel:#17202A; --ink:#E5EAF0; --ink-2:#A8B3BF; --ink-3:#7A8693;
+    --line:#26323E; --line-2:#3A4856;
+    --plus:#F0675A; --minus:#5B93F0; --ion:#A88DF6; --coil:#D9A93E; --field:#2DBB9B;
+    --accent-bg:#1E2F4D; --accent-ink:#A9C5F5; --ok:#4CC79F; --bad:#F07468;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F151C; --panel:#17202A; --ink:#E5EAF0; --ink-2:#A8B3BF; --ink-3:#7A8693;
+  --line:#26323E; --line-2:#3A4856;
+  --plus:#F0675A; --minus:#5B93F0; --ion:#A88DF6; --coil:#D9A93E; --field:#2DBB9B;
+  --accent-bg:#1E2F4D; --accent-ink:#A9C5F5; --ok:#4CC79F; --bad:#F07468;
+  color-scheme: dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.55;font-variant-numeric:tabular-nums}
+.wrap{max-width:1100px;margin:0 auto;padding:20px 16px 44px}
+header h1{font-size:26px;font-weight:600;letter-spacing:-0.01em;margin:4px 0 4px;line-height:1.2}
+header p{margin:0 0 18px;color:var(--ink-2);max-width:66ch}
+.layout{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+@media (min-width:880px){.layout{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}.stage{position:sticky;top:calc(12px + env(safe-area-inset-top,0px));align-self:start}}
+#three{height:400px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel);touch-action:none;cursor:grab}
+#top{display:block;width:100%;margin-top:10px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 2px 0;font-size:13px;color:var(--ink-2)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.bar{display:inline-block;width:16px;height:3px;border-radius:2px;margin-right:6px;vertical-align:3px}
+.cap{font-size:13px;color:var(--ink-2);margin:6px 2px 0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.group{padding:12px 0;border-top:1px solid var(--line)}
+.group:first-child{border-top:0;padding-top:0}
+.group h2{font-size:15px;font-weight:600;margin:0 0 8px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+button{font:inherit;font-size:14px;color:var(--ink);background:transparent;border:1px solid var(--line-2);border-radius:8px;padding:7px 12px;cursor:pointer;min-height:38px}
+button:hover{background:var(--bg)}
+button.on{background:var(--accent-bg);color:var(--accent-ink);border-color:var(--accent-ink)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+label.chk{font-size:14px;color:var(--ink-2);display:flex;align-items:center;gap:6px;min-height:32px}
+.sl{display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr) 4em;gap:10px;align-items:center;margin:6px 0}
+.sl span{font-size:14px;color:var(--ink-2)}
+.sl output{font-size:14px;font-weight:500;text-align:right}
+input[type=range]{width:100%;accent-color:var(--accent-ink)}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.stat{background:var(--bg);border-radius:10px;padding:8px 10px}
+.stat .k{font-size:12px;color:var(--ink-2)}
+.stat .v{font-size:17px;font-weight:600}
+ul.try{margin:0;padding-left:1.1em;color:var(--ink-2);font-size:14px}
+ul.try li{margin:4px 0}
+.note{font-size:13px;color:var(--ink-3);margin:8px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>Penning trap explorer: static voltage plus a magnet</h1>
+<p>The same ring and endcaps as a Paul trap, but with fixed voltages. The static field holds the ion along the axis and pushes it outward sideways. A magnet around the trap bends that outward motion into circles.</p>
+</header>
+<div class="layout">
+<section class="stage" aria-label="Trap view">
+<div id="three" role="img" aria-label="3D Penning trap with an ion and its path"></div>
+<div class="legend">
+<span><i class="dot" style="background:var(--plus)"></i>endcaps (+)</span>
+<span><i class="dot" style="background:var(--minus)"></i>ring (−)</span>
+<span><i class="dot" style="background:var(--ion)"></i>positive ion and its path</span>
+<span><i class="bar" style="background:var(--coil)"></i>magnet coil</span>
+<span><i class="bar" style="background:var(--field)"></i>magnetic field</span>
+</div>
+<canvas id="top" aria-label="Top view along the magnetic field"></canvas>
+<p class="cap">Top view, looking along the magnetic field. The dashed circle is the ring electrode.</p>
+</section>
+
+<section class="panel" aria-label="Controls">
+<div class="group">
+<h2>Start the ion with</h2>
+<div class="seg" id="presets">
+<button data-p="epi" class="on">Both circles</button>
+<button data-p="mag">Slow drift only</button>
+<button data-p="cyc">Fast circle only</button>
+</div>
+<div class="row" style="margin-top:8px">
+<button id="play">Pause</button>
+<button id="reset">Reset</button>
+</div>
+</div>
+
+<div class="group">
+<h2>Fields</h2>
+<div class="sl"><span>Magnetic field</span><input type="range" id="B" min="0" max="8" step="0.1" value="4"><output id="B-o">4.0</output></div>
+<div class="sl"><span>Endcap voltage</span><input type="range" id="V" min="0" max="3" step="0.05" value="1"><output id="V-o">1.00</output></div>
+<div class="row"><label class="chk"><input type="checkbox" id="bon" checked> Magnet on</label><label class="chk"><input type="checkbox" id="von" checked> Voltage on</label></div>
+</div>
+
+<div class="group">
+<h2>View</h2>
+<div class="sl"><span>Speed</span><input type="range" id="sp" min="0.1" max="2" step="0.05" value="0.5"><output id="sp-o">0.50×</output></div>
+<div class="sl"><span>Trail length</span><input type="range" id="tr" min="50" max="3000" step="50" value="1200"><output id="tr-o">1200</output></div>
+<div class="row"><label class="chk"><input type="checkbox" id="showMag" checked> Show magnet</label></div>
+</div>
+
+<div class="group">
+<div class="stats">
+<div class="stat"><div class="k">Fast circle (cyclotron)</div><div class="v" id="o-p">–</div></div>
+<div class="stat"><div class="k">Up and down (axial)</div><div class="v" id="o-z">–</div></div>
+<div class="stat"><div class="k">Slow drift (magnetron)</div><div class="v" id="o-m">–</div></div>
+<div class="stat"><div class="k">Status</div><div class="v" id="o-st">–</div></div>
+</div>
+<p class="note" id="crit"></p>
+</div>
+
+<div class="group">
+<h2>Try this</h2>
+<ul class="try">
+<li>Untick “Magnet on”: the static field pushes the ion out sideways into the ring. That is the saddle.</li>
+<li>Untick “Voltage on”: nothing holds it along the axis any more, and the slow drift disappears.</li>
+<li>Lower the magnetic field slowly. Below the critical value the ion spirals out: the magnet is too weak to bend the outward push into a circle.</li>
+<li>Pick “Slow drift only” and raise the voltage: the drift speeds up, because it is driven by the outward electric push.</li>
+</ul>
+<p class="note">Units are arbitrary, with charge/mass = 1 and an ideal quadrupole field. Real traps have the three motions far further apart in frequency (for example MHz, hundreds of kHz and kHz); they are squeezed together here so all three are visible at once.</p>
+</div>
+</section>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const R0=1.2,Z0=R0/Math.SQRT2;
+let B=4,K=1,bOn=true,vOn=true,speed=0.5,trailMax=1200,preset='epi',playing=true,status='Trapped',bad=false;
+let p=[0,0,0],v=[0,0,0];
+const Beff=()=>bOn?B:0,Keff=()=>vOn?K:0;
+function freqs(){const wc=Beff(),wz=Math.sqrt(Keff()),disc=wc*wc-2*wz*wz;if(disc<0)return{wp:NaN,wm:NaN,wz,stable:false};const s=Math.sqrt(disc);return{wp:(wc+s)/2,wm:(wc-s)/2,wz,stable:true};}
+function reset(){const f=freqs();let Rp=0,Rm=0,Az=0.3;
+ if(preset==='epi'){Rm=0.6;Rp=0.14;}else if(preset==='mag'){Rm=0.6;Rp=0;Az=0.2;}else{Rp=0.35;Rm=0;}
+ if(!f.stable||!isFinite(f.wp)){p=[0.45,0,Az];v=[0,0,0];}
+ else{p=[Rp+Rm,0,Az];v=[0,-(f.wp*Rp+f.wm*Rm),0];}
+ trailN=0;trailStart=0;status='Trapped';bad=false;}
+function E(x){const k=Keff();return[k*x[0]/2,k*x[1]/2,-k*x[2]];}
+function step(dt){const b=Beff(),e1=E(p);
+ const vm=[v[0]+e1[0]*dt/2,v[1]+e1[1]*dt/2,v[2]+e1[2]*dt/2];
+ const t=b*dt/2,vp=[vm[0]+vm[1]*t,vm[1]-vm[0]*t,vm[2]],s=2*t/(1+t*t);
+ const vpl=[vm[0]+vp[1]*s,vm[1]-vp[0]*s,vm[2]];
+ p=[p[0]+0,p[1]+0,p[2]+0];
+ const e2=e1;v=[vpl[0]+e2[0]*dt/2,vpl[1]+e2[1]*dt/2,vpl[2]+e2[2]*dt/2];
+ p=[p[0]+v[0]*dt,p[1]+v[1]*dt,p[2]+v[2]*dt];}
+function check(){const r2=p[0]*p[0]+p[1]*p[1],z2=p[2]*p[2];
+ if(r2-2*z2>=R0*R0)return'Hit the ring';if(z2-r2/2>=Z0*Z0)return'Hit an endcap';if(r2+z2>16)return'Escaped';return null;}
+
+/* three.js scene: physics z = three y */
+const host=document.getElementById('three');
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setPixelRatio(window.devicePixelRatio||1);host.appendChild(renderer.domElement);
+const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(38,1,0.1,100);
+scene.add(new THREE.AmbientLight(0xffffff,0.75));const dl=new THREE.DirectionalLight(0xffffff,0.5);dl.position.set(3,5,4);scene.add(dl);
+const T=(x)=>new THREE.Vector3(x[0],x[2],x[1]);
+const matRing=new THREE.MeshLambertMaterial({color:css('--minus'),transparent:true,opacity:0.22,side:THREE.DoubleSide,depthWrite:false});
+const matCap=new THREE.MeshLambertMaterial({color:css('--plus'),transparent:true,opacity:0.22,side:THREE.DoubleSide,depthWrite:false});
+const ringPts=[];for(let i=0;i<=40;i++){const z=-0.75+1.5*i/40;ringPts.push(new THREE.Vector2(Math.sqrt(R0*R0+2*z*z),z));}
+scene.add(new THREE.Mesh(new THREE.LatheGeometry(ringPts,64),matRing));
+for(const sg of[1,-1]){const pts=[];for(let i=0;i<=40;i++){const r=1.5*i/40;pts.push(new THREE.Vector2(r,sg*Math.sqrt(Z0*Z0+r*r/2)));}scene.add(new THREE.Mesh(new THREE.LatheGeometry(pts,64),matCap));}
+const edge=new THREE.LineBasicMaterial({color:css('--ink-3'),transparent:true,opacity:0.5});
+function ringLine(r,y){const a=[];for(let i=0;i<=96;i++){const t=2*Math.PI*i/96;a.push(new THREE.Vector3(r*Math.cos(t),y,r*Math.sin(t)));}return new THREE.Line(new THREE.BufferGeometry().setFromPoints(a),edge);}
+scene.add(ringLine(R0,0));scene.add(ringLine(Math.sqrt(R0*R0+2*0.75*0.75),0.75));scene.add(ringLine(Math.sqrt(R0*R0+2*0.75*0.75),-0.75));
+const axisG=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,-2.4,0),new THREE.Vector3(0,2.4,0)]);
+const axisL=new THREE.Line(axisG,new THREE.LineDashedMaterial({color:css('--ink-3'),dashSize:0.08,gapSize:0.07}));axisL.computeLineDistances();scene.add(axisL);
+const mag=new THREE.Group();scene.add(mag);
+const coil=[];for(let i=0;i<=1400;i++){const t=i/1400,a=t*2*Math.PI*22;coil.push(new THREE.Vector3(2.1*Math.cos(a),-1.9+3.8*t,2.1*Math.sin(a)));}
+mag.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(coil),new THREE.LineBasicMaterial({color:css('--coil'),transparent:true,opacity:0.55})));
+const fieldArrows=[];for(const [x,z] of[[0.9,0.9],[-0.9,0.9],[0.9,-0.9],[-0.9,-0.9],[1.6,0],[-1.6,0],[0,1.6],[0,-1.6]]){const a=new THREE.ArrowHelper(new THREE.Vector3(0,1,0),new THREE.Vector3(x,-1.7,z),3.4,new THREE.Color(css('--field')),0.18,0.1);a.line.material.transparent=true;a.line.material.opacity=0.45;mag.add(a);fieldArrows.push(a);}
+const ion=new THREE.Mesh(new THREE.SphereGeometry(0.05,20,14),new THREE.MeshLambertMaterial({color:css('--ion')}));scene.add(ion);
+const TMAX=3000,tPos=new Float32Array(TMAX*3),tGeom=new THREE.BufferGeometry();tGeom.setAttribute('position',new THREE.BufferAttribute(tPos,3));
+const trail=new THREE.Line(tGeom,new THREE.LineBasicMaterial({color:css('--ion'),transparent:true,opacity:0.75}));scene.add(trail);
+let trailN=0,trailStart=0,ring=[];
+function pushTrail(){ring.push([p[0],p[1],p[2]]);while(ring.length>trailMax)ring.shift();const n=ring.length;for(let i=0;i<n;i++){const q=ring[i];tPos[3*i]=q[0];tPos[3*i+1]=q[2];tPos[3*i+2]=q[1];}tGeom.setDrawRange(0,n);tGeom.attributes.position.needsUpdate=true;}
+
+let th=0.6,ph=1.2,dist=7;
+function placeCam(){camera.position.set(dist*Math.sin(ph)*Math.sin(th),dist*Math.cos(ph),dist*Math.sin(ph)*Math.cos(th));camera.lookAt(0,0,0);}
+let drag=null;const el=renderer.domElement;el.style.touchAction='none';
+el.addEventListener('pointerdown',e=>{drag=[e.clientX,e.clientY];el.setPointerCapture(e.pointerId);host.style.cursor='grabbing';});
+el.addEventListener('pointermove',e=>{if(!drag)return;th-=(e.clientX-drag[0])*0.008;ph=Math.min(3.0,Math.max(0.12,ph-(e.clientY-drag[1])*0.008));drag=[e.clientX,e.clientY];placeCam();});
+const end=()=>{drag=null;host.style.cursor='grab';};el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
+el.addEventListener('wheel',e=>{e.preventDefault();dist=Math.min(14,Math.max(3.5,dist*(1+Math.sign(e.deltaY)*0.08)));placeCam();},{passive:false});
+
+/* top view */
+const top=document.getElementById('top');let tc,TW,TH;
+function sizeTop(){const d=window.devicePixelRatio||1;TW=top.clientWidth;TH=Math.min(260,Math.round(TW*0.6));top.style.height=TH+'px';top.width=TW*d;top.height=TH*d;tc=top.getContext('2d');tc.setTransform(d,0,0,d,0,0);}
+function drawTop(){tc.clearRect(0,0,TW,TH);const cx=TW/2,cy=TH/2,s=(TH/2-14)/R0;
+ tc.save();tc.strokeStyle=css('--minus');tc.setLineDash([5,5]);tc.lineWidth=1.5;tc.beginPath();tc.arc(cx,cy,R0*s,0,2*Math.PI);tc.stroke();tc.restore();
+ tc.fillStyle=css('--field');tc.beginPath();tc.arc(cx,cy,3,0,2*Math.PI);tc.fill();
+ tc.fillStyle=css('--ink-2');tc.font='12px "IBM Plex Sans",sans-serif';tc.textAlign='left';tc.fillText(bOn?'field points toward you':'magnet off',8,16);
+ if(ring.length>1){tc.strokeStyle=css('--ion');tc.globalAlpha=0.7;tc.lineWidth=1.2;tc.beginPath();ring.forEach((q,i)=>{const X=cx+q[0]*s,Y=cy-q[1]*s;i?tc.lineTo(X,Y):tc.moveTo(X,Y);});tc.stroke();tc.globalAlpha=1;}
+ tc.fillStyle=css('--ion');tc.beginPath();tc.arc(cx+p[0]*s,cy-p[1]*s,5,0,2*Math.PI);tc.fill();}
+
+function stats(){const f=freqs();const fmt=x=>isFinite(x)?x.toFixed(2):'–';
+ document.getElementById('o-p').textContent=f.stable?fmt(f.wp):'–';document.getElementById('o-z').textContent=fmt(f.wz);document.getElementById('o-m').textContent=f.stable?fmt(f.wm):'–';
+ const o=document.getElementById('o-st');o.textContent=status;o.style.color=bad?css('--bad'):css('--ok');
+ const crit=Math.SQRT2*Math.sqrt(Keff());document.getElementById('crit').textContent=vOn?('The magnet must beat the outward push: field above '+crit.toFixed(2)+' here (√2 × axial frequency).'+(bOn&&Beff()<crit?' It is below that now, so the ion spirals out.':'')):'Voltage off: no outward push, so any field is enough sideways, but nothing holds the ion along the axis.';}
+
+function setPlay(){document.getElementById('play').textContent=playing?'Pause':'Run';}
+let last=null;
+function loop(ts){if(last===null)last=ts;const dt=Math.min(0.05,(ts-last)/1000);last=ts;
+ if(playing&&!bad){let sim=dt*3*speed;while(sim>0){const h=Math.min(0.004,sim);step(h);sim-=h;const c=check();if(c){status=c;bad=true;break;}}
+  if(!bad&&!freqs().stable)status='Spiralling out';pushTrail();}
+ ion.position.copy(T(p));mag.visible=document.getElementById('showMag').checked;fieldArrows.forEach(a=>a.visible=bOn);
+ renderer.render(scene,camera);drawTop();stats();requestAnimationFrame(loop);}
+
+function restart(){reset();ring=[];pushTrail();if(!playing){playing=true;setPlay();}}
+document.querySelectorAll('#presets button').forEach(b=>b.onclick=()=>{preset=b.dataset.p;document.querySelectorAll('#presets button').forEach(x=>x.classList.toggle('on',x===b));restart();});
+document.getElementById('play').onclick=()=>{if(bad){restart();return;}playing=!playing;setPlay();};
+document.getElementById('reset').onclick=restart;
+function bind(id,fmt,fn,rs){const s=document.getElementById(id),o=document.getElementById(id+'-o');s.addEventListener('input',()=>{const val=parseFloat(s.value);o.textContent=fmt(val);fn(val);if(rs)restart();});}
+bind('B',x=>x.toFixed(1),x=>B=x,true);bind('V',x=>x.toFixed(2),x=>K=x,true);
+bind('sp',x=>x.toFixed(2)+'×',x=>speed=x,false);bind('tr',x=>String(x),x=>{trailMax=x;},false);
+document.getElementById('bon').onchange=e=>{bOn=e.target.checked;bad=false;status='Trapped';};
+document.getElementById('von').onchange=e=>{vOn=e.target.checked;bad=false;status='Trapped';};
+function size(){const w=host.clientWidth,h=host.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();sizeTop();}
+window.addEventListener('resize',size);
+size();placeCam();reset();pushTrail();setPlay();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

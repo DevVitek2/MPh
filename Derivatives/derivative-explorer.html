@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Derivative explorer: from secant to tangent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F4F6; --panel:#FFFFFF; --ink:#16202B; --ink-2:#4B5866; --ink-3:#7D8996;
+  --line:#D7DDE3; --line-2:#B9C2CB;
+  --sec:#2F6FDB; --tan:#12937A; --run:#B8861B; --rise:#7A5AE0; --pt:#D9483B; --curve:#16202B;
+  --accent-bg:#E4ECFB; --accent-ink:#1E4FA8; --ok:#12805F; --bad:#C2362B;
+  color-scheme: light; box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F151C; --panel:#17202A; --ink:#E5EAF0; --ink-2:#A8B3BF; --ink-3:#7A8693;
+    --line:#26323E; --line-2:#3A4856;
+    --sec:#5B93F0; --tan:#2DBB9B; --run:#D9A93E; --rise:#A88DF6; --pt:#F0675A; --curve:#E5EAF0;
+    --accent-bg:#1E2F4D; --accent-ink:#A9C5F5; --ok:#4CC79F; --bad:#F07468;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F151C; --panel:#17202A; --ink:#E5EAF0; --ink-2:#A8B3BF; --ink-3:#7A8693;
+  --line:#26323E; --line-2:#3A4856;
+  --sec:#5B93F0; --tan:#2DBB9B; --run:#D9A93E; --rise:#A88DF6; --pt:#F0675A; --curve:#E5EAF0;
+  --accent-bg:#1E2F4D; --accent-ink:#A9C5F5; --ok:#4CC79F; --bad:#F07468;
+  color-scheme: dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.55;font-variant-numeric:tabular-nums}
+.wrap{max-width:1100px;margin:0 auto;padding:20px 16px 44px}
+header h1{font-size:26px;font-weight:600;letter-spacing:-0.01em;margin:4px 0 4px;line-height:1.2}
+header p{margin:0 0 18px;color:var(--ink-2);max-width:66ch}
+.layout{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+@media (min-width:880px){.layout{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}.stage{position:sticky;top:calc(12px + env(safe-area-inset-top,0px));align-self:start}}
+#plot{display:block;width:100%;height:400px;border:1px solid var(--line);border-radius:14px;background:var(--panel);touch-action:none;cursor:grab}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 2px 0;font-size:13px;color:var(--ink-2)}
+.bar{display:inline-block;width:16px;height:3px;border-radius:2px;margin-right:6px;vertical-align:3px}
+.dash{display:inline-block;width:16px;height:0;border-top:2px dashed;margin-right:6px;vertical-align:3px}
+.cap{font-size:13px;color:var(--ink-2);margin:6px 2px 0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.group{padding:12px 0;border-top:1px solid var(--line)}
+.group:first-child{border-top:0;padding-top:0}
+.group h2{font-size:15px;font-weight:600;margin:0 0 8px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+button{font:inherit;font-size:14px;color:var(--ink);background:transparent;border:1px solid var(--line-2);border-radius:8px;padding:7px 12px;cursor:pointer;min-height:38px}
+button:hover{background:var(--bg)}
+button.on{background:var(--accent-bg);color:var(--accent-ink);border-color:var(--accent-ink)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px}
+.sl{display:grid;grid-template-columns:minmax(0,6em) minmax(0,1fr) 4.5em;gap:10px;align-items:center;margin:6px 0}
+.sl span{font-size:14px;color:var(--ink-2)}
+.sl output{font-size:14px;font-weight:500;text-align:right}
+input[type=range]{width:100%;accent-color:var(--accent-ink)}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.stat{background:var(--bg);border-radius:10px;padding:8px 10px}
+.stat .k{font-size:12px;color:var(--ink-2)}
+.stat .v{font-size:17px;font-weight:600}
+.formula{background:var(--bg);border-radius:10px;padding:12px;font-size:16px;text-align:center;overflow-x:auto;white-space:nowrap}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 3px}
+.frac>span:first-child{border-bottom:1.5px solid currentColor;padding:0 4px 2px}
+.frac>span:last-child{padding:2px 4px 0}
+.lim{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin-right:4px;line-height:1.1}
+.lim small{font-size:11px;color:var(--ink-2)}
+.c-sec{color:var(--sec)} .c-tan{color:var(--tan)} .c-run{color:var(--run)} .c-rise{color:var(--rise)} .c-pt{color:var(--pt)}
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:right;padding:5px 8px;border-bottom:1px solid var(--line)}
+th{font-weight:500;color:var(--ink-2)}
+td.hl{color:var(--tan);font-weight:600}
+.read{max-width:70ch}
+.read h2{font-size:19px;font-weight:600;margin:28px 0 8px}
+.read p{margin:0 0 10px}
+.read ol{margin:0 0 10px;padding-left:1.3em}
+.read li{margin:4px 0}
+.ask{border-left:3px solid var(--accent-ink);background:var(--accent-bg);color:var(--ink);padding:10px 14px;border-radius:0 10px 10px 0;margin:12px 0}
+.note{font-size:13px;color:var(--ink-3);margin:8px 0 0}
+.warn{color:var(--bad);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>Derivative explorer: from secant to tangent</h1>
+<p>A derivative is the slope of a curve at a single point. A slope needs two points, so we take a second point a distance h away, compute the slope between them, and watch what that number settles to as h shrinks. Drag the red point A on the graph and move the h slider.</p>
+</header>
+
+<div class="layout">
+<section class="stage" aria-label="Graph">
+<canvas id="plot" role="img" aria-label="Curve with secant line through A and B and tangent line at A"></canvas>
+<div class="legend">
+  <span><span class="bar" style="background:var(--curve)"></span>f(x)</span>
+  <span><span class="bar" style="background:var(--sec)"></span>secant through A and B</span>
+  <span><span class="dash" style="border-color:var(--tan)"></span>tangent at A (the limit)</span>
+  <span><span class="bar" style="background:var(--run)"></span>run = h</span>
+  <span><span class="bar" style="background:var(--rise)"></span>rise = f(a+h) − f(a)</span>
+</div>
+<p class="cap">Drag along the graph to move A. B always sits at x = a + h.</p>
+</section>
+
+<section class="panel" aria-label="Controls">
+  <div class="group">
+    <h2>Function</h2>
+    <div class="seg" id="fns"></div>
+  </div>
+  <div class="group">
+    <h2>Step size</h2>
+    <div class="sl"><span>a</span><input id="a" type="range" min="-2.5" max="2.5" step="0.01" value="0.8"><output id="aOut"></output></div>
+    <div class="sl"><span>h</span><input id="h" type="range" min="-2" max="2" step="0.001" value="1.2"><output id="hOut"></output></div>
+    <div class="seg">
+      <button id="shrink">Shrink h toward 0</button>
+      <button id="zero">Set h = 0</button>
+      <button id="neg">Flip sign of h</button>
+    </div>
+  </div>
+  <div class="group">
+    <h2>The difference quotient right now</h2>
+    <div class="formula" id="live"></div>
+    <div class="stats" style="margin-top:10px">
+      <div class="stat"><div class="k">Secant slope (h ≠ 0)</div><div class="v c-sec" id="sSec">–</div></div>
+      <div class="stat"><div class="k">Tangent slope f′(a)</div><div class="v c-tan" id="sTan">–</div></div>
+      <div class="stat"><div class="k">Error: secant − tangent</div><div class="v" id="sErr">–</div></div>
+      <div class="stat"><div class="k">Exact rule</div><div class="v" id="sRule">–</div></div>
+    </div>
+    <p class="note" id="msg"></p>
+  </div>
+  <div class="group">
+    <h2>Same a, smaller and smaller h</h2>
+    <div class="tbl-wrap"><table id="tbl"></table></div>
+    <p class="note">Both columns approach the same number from opposite sides. That shared number is the limit. If the two sides disagree, the limit does not exist and there is no derivative there (try |x| at a = 0).</p>
+  </div>
+</section>
+</div>
+
+<article class="read">
+<h2>Where the formula comes from</h2>
+<p>Start with something you already trust: the slope of a straight line through two points, slope = rise / run. For a line, any two points give the same answer, so “the slope” is well defined.</p>
+<p>A curve breaks this. Different pairs of points give different slopes. The secant through A and B only tells you the <em>average</em> steepness between them. Physically: if f(t) is position, the secant slope is average velocity over the interval [a, a+h].</p>
+<p>What we want is the steepness <em>at</em> A alone, like the number on a speedometer. Taking B = A directly gives rise 0 and run 0, so 0/0, which is meaningless. That is the whole problem. The limit is the way around it: we never set h = 0, we ask which value the quotient approaches as h gets arbitrarily close to 0.</p>
+
+<h2>How to read each symbol</h2>
+<ol>
+<li><b>a</b> is the fixed point where you want the slope. <b>h</b> is how far to the right (or left, if negative) the second point is.</li>
+<li><b>f(a+h) − f(a)</b> is the rise: the change in height between the two points.</li>
+<li><b>h</b> in the denominator is the run: (a + h) − a.</li>
+<li>The fraction is the secant slope. <b>lim h→0</b> means: the number the fraction gets as close to as you like, provided h is close enough to 0 (but not equal to it).</li>
+</ol>
+<p>Read aloud: “f prime of a is the limit, as h goes to zero, of f of a plus h minus f of a, all over h.”</p>
+
+<h2>Why the two forms in your notes are the same</h2>
+<p>In the first form the second point is called x; in the second it is called a + h. Substitute x = a + h. Then x − a = h, and x → a is the same statement as h → 0. Nothing changes but the label for the second point.</p>
+
+<h2>Why it is called the derivative</h2>
+<p>For each a you get one number f′(a). Now let the point vary: replace a by x and you get a new function f′(x), which outputs the slope of f at every x. It is <em>derived</em> from f, hence the name. Example: for f(x) = x², f′(x) = 2x.</p>
+
+<h2>Worked by hand: f(x) = x²</h2>
+<p>f(a+h) − f(a) = (a² + 2ah + h²) − a² = 2ah + h². Divide by h (allowed, since h ≠ 0): 2a + h. Now let h → 0: the result is 2a. Notice that we cancelled h <em>before</em> taking the limit. That cancellation is exactly what turns the meaningless 0/0 into something finite.</p>
+
+<div class="ask"><b>Check your understanding.</b> In the x² example, the secant slope was exactly 2a + h. So the error of the secant is exactly h. Set a = 1 and h = 0.5 in the explorer and confirm the error panel shows 0.5. Then explain why the error for sin x is not simply proportional to h.</div>
+</article>
+</div>
+
+<script>
+const FN = {
+  sq:   {label:"x²",        f:x=>x*x,             d:x=>2*x,           rule:"2x",    yr:[-1.5,7.5]},
+  cube: {label:"x³/3 − x",  f:x=>x*x*x/3-x,       d:x=>x*x-1,         rule:"x² − 1",yr:[-3,3]},
+  sin:  {label:"sin x",     f:Math.sin,           d:Math.cos,         rule:"cos x", yr:[-1.8,1.8]},
+  abs:  {label:"|x|",       f:Math.abs,           d:x=>x>0?1:x<0?-1:NaN, rule:"±1, none at 0", yr:[-1,3.2]}
+};
+let cur="sq";
+const xr=[-3,3];
+const $=id=>document.getElementById(id);
+const cv=$("plot"), ctx=cv.getContext("2d");
+const aS=$("a"), hS=$("h");
+
+const fnBox=$("fns");
+for(const k in FN){
+  const b=document.createElement("button");
+  b.textContent=FN[k].label; b.dataset.k=k;
+  b.onclick=()=>{cur=k; if(k==="abs"){aS.value=0; hS.value=0.8;} draw();};
+  fnBox.appendChild(b);
+}
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt=(v,d=4)=>!isFinite(v)?"undefined":(Math.abs(v)<1e-12?"0":(+v.toFixed(d)).toString());
+
+function draw(){
+  document.querySelectorAll("#fns button").forEach(b=>b.classList.toggle("on",b.dataset.k===cur));
+  const F=FN[cur], a=+aS.value, h=+hS.value;
+  $("aOut").textContent=a.toFixed(2); $("hOut").textContent=h.toFixed(3);
+
+  const dpr=window.devicePixelRatio||1, W=cv.clientWidth, H=cv.clientHeight;
+  cv.width=W*dpr; cv.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+  const yr=F.yr, pad=8;
+  const X=x=>pad+(x-xr[0])/(xr[1]-xr[0])*(W-2*pad);
+  const Y=y=>H-pad-(y-yr[0])/(yr[1]-yr[0])*(H-2*pad);
+  ctx.clearRect(0,0,W,H);
+  ctx.font='13px "IBM Plex Sans",system-ui,sans-serif';
+
+  // grid + axes
+  ctx.strokeStyle=css("--line"); ctx.lineWidth=1;
+  for(let gx=Math.ceil(xr[0]);gx<=xr[1];gx++){ctx.beginPath();ctx.moveTo(X(gx),0);ctx.lineTo(X(gx),H);ctx.stroke();}
+  for(let gy=Math.ceil(yr[0]);gy<=yr[1];gy++){ctx.beginPath();ctx.moveTo(0,Y(gy));ctx.lineTo(W,Y(gy));ctx.stroke();}
+  ctx.strokeStyle=css("--line-2"); ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(0,Y(0));ctx.lineTo(W,Y(0));ctx.moveTo(X(0),0);ctx.lineTo(X(0),H);ctx.stroke();
+  ctx.fillStyle=css("--ink-3"); ctx.fillText("x",W-16,Y(0)-6); ctx.fillText("y",X(0)+6,14);
+
+  // curve
+  ctx.strokeStyle=css("--curve"); ctx.lineWidth=2.2; ctx.beginPath();
+  for(let i=0;i<=400;i++){const x=xr[0]+(xr[1]-xr[0])*i/400; const p=[X(x),Y(F.f(x))]; i?ctx.lineTo(...p):ctx.moveTo(...p);}
+  ctx.stroke();
+
+  const fa=F.f(a), b=a+h, fb=F.f(b), dfa=F.d(a);
+  const line=(m,col,dash)=>{ctx.save();ctx.strokeStyle=col;ctx.lineWidth=2;ctx.setLineDash(dash||[]);
+    ctx.beginPath();ctx.moveTo(X(xr[0]),Y(fa+m*(xr[0]-a)));ctx.lineTo(X(xr[1]),Y(fa+m*(xr[1]-a)));ctx.stroke();ctx.restore();};
+  if(isFinite(dfa)) line(dfa,css("--tan"),[7,6]);
+  const hasB=Math.abs(h)>1e-9;
+  const msec=hasB?(fb-fa)/h:NaN;
+  if(hasB){
+    line(msec,css("--sec"));
+    // run
+    ctx.strokeStyle=css("--run"); ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(X(a),Y(fa));ctx.lineTo(X(b),Y(fa));ctx.stroke();
+    // rise
+    ctx.strokeStyle=css("--rise");
+    ctx.beginPath();ctx.moveTo(X(b),Y(fa));ctx.lineTo(X(b),Y(fb));ctx.stroke();
+    ctx.fillStyle=css("--run"); ctx.textAlign="center";
+    ctx.fillText("h = "+h.toFixed(2),(X(a)+X(b))/2,Y(fa)+(fb>=fa?17:-8));
+    ctx.fillStyle=css("--rise"); ctx.textAlign=h>0?"left":"right";
+    ctx.fillText("f(a+h) − f(a) = "+fmt(fb-fa,2),X(b)+(h>0?7:-7),(Y(fa)+Y(fb))/2+4);
+    // B
+    ctx.fillStyle=css("--sec"); ctx.beginPath();ctx.arc(X(b),Y(fb),6,0,7);ctx.fill();
+    ctx.textAlign="left"; ctx.fillText("B (a+h, f(a+h))",X(b)+9,Y(fb)-9);
+  }
+  // A
+  ctx.fillStyle=css("--pt"); ctx.beginPath();ctx.arc(X(a),Y(fa),7,0,7);ctx.fill();
+  ctx.textAlign="right"; ctx.fillText("A (a, f(a))",X(a)-10,Y(fa)-10); ctx.textAlign="left";
+
+  // live formula
+  $("live").innerHTML=hasB
+   ? `<span class="c-sec">slope</span> = <span class="frac"><span><span class="c-rise">f(${fmt(b,3)}) − f(${fmt(a,3)})</span></span><span class="c-run">${fmt(h,3)}</span></span> = <span class="frac"><span class="c-rise">${fmt(fb-fa)}</span><span class="c-run">${fmt(h,3)}</span></span> = <b class="c-sec">${fmt(msec)}</b>`
+   : `slope = <span class="frac"><span class="c-rise">f(${fmt(a,3)}) − f(${fmt(a,3)})</span><span class="c-run">0</span></span> = <span class="frac"><span>0</span><span>0</span></span> = <span class="warn">undefined</span>`;
+  $("sSec").textContent=hasB?fmt(msec):"0/0";
+  $("sTan").textContent=isFinite(dfa)?fmt(dfa):"does not exist";
+  $("sErr").textContent=hasB&&isFinite(dfa)?fmt(msec-dfa):"–";
+  $("sRule").textContent="f′(x) = "+F.rule;
+  $("msg").textContent=!hasB
+    ?"With h exactly 0 there is only one point, so no slope. The derivative is not the value at h = 0; it is the value the quotient approaches."
+    :(!isFinite(dfa)?"At this point the left and right secant slopes approach different numbers, so the limit does not exist."
+    :"Shrink h and watch the blue secant rotate onto the dashed tangent.");
+
+  // table
+  const hs=[1,0.1,0.01,0.001,0.0001];
+  let t="<tr><th>|h|</th><th>slope, h &gt; 0</th><th>slope, h &lt; 0</th></tr>";
+  for(const s of hs){
+    const r=(F.f(a+s)-fa)/s, l=(F.f(a-s)-fa)/(-s);
+    t+=`<tr><td>${s}</td><td>${fmt(r,6)}</td><td>${fmt(l,6)}</td></tr>`;
+  }
+  t+=`<tr><td>limit</td><td class="hl" colspan="2" style="text-align:center">${isFinite(dfa)?fmt(dfa,6):"none (sides disagree)"}</td></tr>`;
+  $("tbl").innerHTML=t;
+}
+
+// drag A
+let drag=false;
+const toA=e=>{const r=cv.getBoundingClientRect(),pad=8;
+  const x=xr[0]+(e.clientX-r.left-pad)/(r.width-2*pad)*(xr[1]-xr[0]);
+  aS.value=Math.max(-2.5,Math.min(2.5,x)); draw();};
+cv.addEventListener("pointerdown",e=>{drag=true;cv.setPointerCapture(e.pointerId);cv.style.cursor="grabbing";toA(e);});
+cv.addEventListener("pointermove",e=>{if(drag)toA(e);});
+cv.addEventListener("pointerup",()=>{drag=false;cv.style.cursor="grab";});
+
+aS.oninput=hS.oninput=draw;
+let anim=null;
+$("shrink").onclick=()=>{
+  cancelAnimationFrame(anim);
+  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if(reduce){hS.value=(Math.sign(+hS.value)||1)*0.001;draw();return;}
+  const step=()=>{let h=+hS.value; if(Math.abs(h)<0.002){hS.value=(Math.sign(h)||1)*0.001;draw();return;}
+    hS.value=h*0.96; draw(); anim=requestAnimationFrame(step);};
+  step();
+};
+$("zero").onclick=()=>{cancelAnimationFrame(anim);hS.value=0;draw();};
+$("neg").onclick=()=>{cancelAnimationFrame(anim);hS.value=-(+hS.value);draw();};
+window.addEventListener("resize",draw);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",draw);
+draw();
+</script>
+</body>
+</html>

@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cross Product in 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: same workbench as the other two pages — controls and arithmetic on the left, a rotatable 3D scene on the right, a physics bridge below. */
+:root {
+  --bg: #f4f6f8; --panel: #ffffff; --ink: #17202b; --muted: #5b6776;
+  --line: #d9dfe6; --grid: #e3e8ee; --axis: #9aa5b2;
+  --va: #2563c9; --vb: #c98a06; --vc: #d1392f; --plane: #2563c9; --vh: #1d8a4a;
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Source Sans 3", "Segoe UI", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --panel: #161d25; --ink: #e6ebf1; --muted: #98a4b3;
+    --line: #2a3542; --grid: #222c37; --axis: #56657a;
+    --va: #6aa2ff; --vb: #f0b429; --vc: #ff6f61; --plane: #6aa2ff; --vh: #5fd38d; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --panel: #161d25; --ink: #e6ebf1; --muted: #98a4b3;
+  --line: #2a3542; --grid: #222c37; --axis: #56657a;
+  --va: #6aa2ff; --vb: #f0b429; --vc: #ff6f61; --plane: #6aa2ff; --vh: #5fd38d; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 28px 20px 48px; display: grid; gap: 24px; }
+h1, h2 { font-family: var(--font-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: 1.9rem; } h2 { font-size: 1.2rem; }
+.lede { color: var(--muted); max-width: 68ch; margin: 6px 0 0; }
+.grid2 { display: grid; grid-template-columns: minmax(300px, 400px) 1fr; gap: 24px; align-items: start; }
+.grid2 > * { min-width: 0; }
+@media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } .stage { order: -1; } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 14px; min-width: 0; }
+.label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
+.vec { display: grid; gap: 4px; }
+.comp { display: grid; grid-template-columns: 18px 1fr 52px; gap: 8px; align-items: center; font-family: var(--font-mono); font-size: 0.9rem; }
+.comp output { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+input[type=range] { width: 100%; }
+#vecA input[type=range] { accent-color: var(--va); }
+#vecB input[type=range] { accent-color: var(--vb); }
+input:focus-visible, button:focus-visible { outline: 2px solid var(--va); outline-offset: 2px; }
+.ka { color: var(--va); font-weight: 600; } .kb { color: var(--vb); font-weight: 600; } .kc { color: var(--vc); font-weight: 600; } .kh { color: var(--vh); font-weight: 600; }
+.calc { font-family: var(--font-mono); font-size: 0.88rem; font-variant-numeric: tabular-nums; display: grid; gap: 5px; overflow-x: auto; }
+.calc .line { white-space: nowrap; }
+.big { font-family: var(--font-mono); font-size: 1.5rem; font-weight: 600; color: var(--vc); font-variant-numeric: tabular-nums; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+button { font: 600 0.85rem var(--font-body); padding: 6px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+button:hover { border-color: var(--axis); }
+button[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.stage { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 10px; min-width: 0; }
+.canvasbox { width: 100%; min-width: 0; }
+canvas { display: block; max-width: 100%; touch-action: none; cursor: grab; border-radius: 6px; }
+canvas:active { cursor: grabbing; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.88rem; color: var(--muted); }
+.sw { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.hint { font-size: 0.88rem; color: var(--muted); }
+.note { font-size: 0.95rem; color: var(--muted); max-width: 72ch; margin: 0; }
+.note strong { color: var(--ink); }
+.chip { display: inline-flex; padding: 4px 10px; border-radius: 999px; font-size: 0.85rem; font-weight: 600; background: var(--bg); color: var(--muted); border: 1px solid var(--line); width: fit-content; }
+.anglebox { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.anglebox .nums { display: flex; gap: 22px; flex-wrap: wrap; align-items: baseline; }
+.anglebox .num { font-family: var(--font-mono); font-size: 1.35rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.meter { position: relative; height: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.meter .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--vh); }
+.meterlab { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--muted); font-family: var(--font-mono); }
+#thetaSlider { accent-color: var(--vh); }
+.flatbox { width: 100%; min-width: 0; }
+#flat { display: block; max-width: 100%; border-radius: 6px; cursor: default; touch-action: auto; }
+.explain { font-size: 0.92rem; color: var(--muted); margin: 0; }
+.explain strong { color: var(--ink); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Cross Product in 3D</h1>
+    <p class="lede">a and b span a flat sheet (the blue parallelogram). a × b sticks straight out of that sheet, at 90° to both. Drag the scene to look at it from any side; change a and b with the sliders.</p>
+  </header>
+
+  <section class="grid2">
+    <div class="panel">
+      <div class="vec" id="vecA"><div class="label">Vector a</div></div>
+      <div class="vec" id="vecB"><div class="label">Vector b</div></div>
+
+      <div>
+        <div class="label">Try these</div>
+        <div class="presets" id="presets" style="margin-top:6px"></div>
+      </div>
+
+      <div>
+        <div class="label">Result</div>
+        <div class="big" id="res">a × b = (0, 0, 0)</div>
+      </div>
+      <div class="anglebox" id="anglebox">
+        <div class="label">Angle and sine</div>
+        <div class="nums">
+          <div><div class="label">θ between a and b</div><div class="num" id="thetaVal">0°</div></div>
+          <div><div class="label">sin θ</div><div class="num kh" id="sinVal">0</div></div>
+        </div>
+        <div>
+          <div class="meter" aria-hidden="true"><div class="fill" id="sinFill"></div></div>
+          <div class="meterlab"><span>0 (parallel)</span><span>1 (at 90°)</span></div>
+        </div>
+        <div>
+          <label class="label" for="thetaSlider">Turn b inside the sheet</label>
+          <input type="range" id="thetaSlider" min="0" max="180" step="1" value="60">
+        </div>
+        <div class="label">The sheet seen face-on</div>
+        <div class="flatbox" id="flatbox"><canvas id="flat" aria-label="The parallelogram drawn flat, with the angle theta and the height h"></canvas></div>
+        <p class="explain" id="flatText"></p>
+        <p class="explain"><strong>What sin θ means here:</strong> split b into a part along a and a part sideways from a. The sideways part is the green height h = |b|·sin θ. So sin θ is the fraction of b that sticks out from a. The parallelogram is base × height = |a| · |b| · sin θ, and that area is the length of a × b. Parallel vectors (θ = 0° or 180°) have no sideways part, so the area and the cross product are 0. At 90° the whole of b is sideways, sin θ = 1, and the cross product is as long as it can get.</p>
+      </div>
+      <div class="calc" id="calc"></div>
+    </div>
+
+    <div class="stage">
+      <div class="canvasbox" id="cbox"><canvas id="scene" aria-label="3D view of a, b, the parallelogram they span and a cross b"></canvas></div>
+      <div class="toolbar">
+        <button type="button" id="spin" aria-pressed="true">Auto-rotate</button>
+        <button type="button" id="swap" aria-pressed="false">Show b × a instead</button>
+        <button type="button" id="viewTop">Look along a × b</button>
+        <button type="button" id="viewEdge">Look along the sheet</button>
+      </div>
+      <div class="hint">Drag to rotate the view; the scene follows your finger. Tap without dragging to start or stop auto-rotate. The small squares at the origin mark the 90° angles. The curved arrow shows the turn from the first vector to the second; curl your right hand's fingers that way and your thumb points along the result.</div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--va)"></i>a</span>
+        <span><i class="sw" style="background:var(--vb)"></i>b</span>
+        <span><i class="sw" style="background:var(--vc)"></i>a × b</span>
+        <span><i class="sw" style="background:var(--plane);opacity:.35"></i>parallelogram, area = |a × b|</span>
+        <span><i class="sw" style="background:var(--vh)"></i>height h = |b|·sin θ</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Where you'll meet it in the NV paper</h2>
+    <p class="note"><strong>Spin precession.</strong> A magnetic moment in a field B feels a torque μ × B. That torque is perpendicular to both the moment and the field, so it doesn't tip the spin toward B. It pushes the spin sideways, and the spin circles around B at the Larmor frequency. That circling is the precession behind Ramsey fringes and the ¹³C echo revivals in §III C. Set a = B along z and b = a tilted spin, then watch a × b: it always points around the z axis, never toward it.</p>
+    <div class="presets"><button type="button" id="larmor">Load: B along z, spin tilted</button></div>
+  </section>
+</div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const fmt = (n) => { let r = Math.round(n * 1000) / 1000; if (Object.is(r, -0)) r = 0; const s = String(r); return s.startsWith("-") ? "−" + s.slice(1) : s; };
+  const par = (n) => (n < 0 ? "(" + fmt(n) + ")" : fmt(n));
+
+  const st = { a: [2, 1, 0], b: [0, 1, 2] };
+  const sliders = {};
+  ["a", "b"].forEach((v) => {
+    const box = $(v === "a" ? "vecA" : "vecB");
+    ["x", "y", "z"].forEach((c, i) => {
+      const row = document.createElement("div"); row.className = "comp";
+      const id = v + c;
+      row.innerHTML = "<label for='" + id + "'>" + c + "</label><input type='range' id='" + id + "' min='-3' max='3' step='0.5'><output id='" + id + "o' for='" + id + "'></output>";
+      box.appendChild(row);
+      const inp = row.querySelector("input");
+      inp.addEventListener("input", () => { st[v][i] = parseFloat(inp.value); update(); });
+      sliders[id] = inp;
+    });
+  });
+  function syncSliders() {
+    ["a", "b"].forEach((v) => ["x", "y", "z"].forEach((c, i) => { sliders[v + c].value = st[v][i]; $(v + c + "o").textContent = fmt(st[v][i]); }));
+  }
+
+  const presets = [
+    ["x × y", [1, 0, 0], [0, 1, 0]],
+    ["y × x", [0, 1, 0], [1, 0, 0]],
+    ["Wide angle", [2, 0, 0], [-1, 2, 0]],
+    ["Tilted pair", [2, 1, 0], [0, 1, 2]],
+    ["Parallel", [1, 1, 0], [2, 2, 0]],
+  ];
+  presets.forEach(([n, a, b]) => { const btn = document.createElement("button"); btn.type = "button"; btn.textContent = n; btn.addEventListener("click", () => { st.a = a.slice(); st.b = b.slice(); update(); }); $("presets").appendChild(btn); });
+  $("larmor").addEventListener("click", () => { st.a = [0, 0, 2]; st.b = [1.5, 0, 1.5]; update(); });
+
+  let swapped = false;
+  $("swap").addEventListener("click", () => { swapped = !swapped; $("swap").setAttribute("aria-pressed", String(swapped)); update(); });
+
+  const cross = (u, v) => [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+  const dot = (u, v) => u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
+  const norm = (u) => Math.hypot(u[0], u[1], u[2]);
+  const add = (u, v) => [u[0] + v[0], u[1] + v[1], u[2] + v[2]];
+  const mul = (u, k) => [u[0] * k, u[1] * k, u[2] * k];
+
+  function renderText() {
+    const a = swapped ? st.b : st.a, b = swapped ? st.a : st.b;
+    const na = swapped ? "b" : "a", nb = swapped ? "a" : "b";
+    const ca = swapped ? "kb" : "ka", cb = swapped ? "ka" : "kb";
+    const c = cross(a, b);
+    const A = norm(a), B = norm(b), C = norm(c);
+    const ang = A > 1e-9 && B > 1e-9 ? Math.acos(Math.max(-1, Math.min(1, dot(a, b) / (A * B)))) : NaN;
+    $("res").textContent = na + " × " + nb + " = (" + c.map(fmt).join(", ") + ")";
+    const s = (i, j) => "<span class='" + ca + "'>" + par(a[i]) + "</span>·<span class='" + cb + "'>" + par(b[j]) + "</span>";
+    $("calc").innerHTML =
+      "<div class='label'>Components</div>" +
+      "<div class='line'>x: " + s(1, 2) + " − " + s(2, 1) + " = <span class='kc'>" + fmt(c[0]) + "</span></div>" +
+      "<div class='line'>y: " + s(2, 0) + " − " + s(0, 2) + " = <span class='kc'>" + fmt(c[1]) + "</span></div>" +
+      "<div class='line'>z: " + s(0, 1) + " − " + s(1, 0) + " = <span class='kc'>" + fmt(c[2]) + "</span></div>" +
+      "<div class='label' style='margin-top:6px'>Length = parallelogram area</div>" +
+      (isFinite(ang)
+        ? "<div class='line'>|" + na + "|·|" + nb + "|·sin θ = " + fmt(A) + " · " + fmt(B) + " · sin " + fmt(ang * 180 / Math.PI) + "° = <span class='kc'>" + fmt(A * B * Math.sin(ang)) + "</span></div>"
+        : "<div class='line'>a zero vector gives a zero result</div>") +
+      "<div class='label' style='margin-top:6px'>Check: 90° to both</div>" +
+      "<div class='line'>(" + na + " × " + nb + ") · a = " + fmt(dot(c, st.a)) + ", (" + na + " × " + nb + ") · b = " + fmt(dot(c, st.b)) + "</div>" +
+      (C < 1e-9 && A > 1e-9 && B > 1e-9 ? "<div class='chip' style='margin-top:6px'>Parallel vectors: no sheet, so no perpendicular direction. Result is 0.</div>" : "");
+    const deg = isFinite(ang) ? ang * 180 / Math.PI : NaN;
+    $("thetaVal").textContent = isFinite(deg) ? fmt(deg) + "°" : "undefined";
+    $("sinVal").textContent = isFinite(ang) ? fmt(Math.sin(ang)) : "–";
+    $("sinFill").style.width = (isFinite(ang) ? Math.sin(ang) * 100 : 0) + "%";
+    if (isFinite(deg) && document.activeElement !== $("thetaSlider")) $("thetaSlider").value = Math.round(deg);
+    const Aa = norm(st.a), Bb = norm(st.b);
+    $("flatText").innerHTML = isFinite(ang)
+      ? "base |<span class='ka'>a</span>| = " + fmt(Aa) + ", height <span class='kh'>h</span> = |<span class='kb'>b</span>|·sin θ = " + fmt(Bb) + " · " + fmt(Math.sin(ang)) + " = <span class='kh'>" + fmt(Bb * Math.sin(ang)) + "</span>, area = " + fmt(Aa) + " · " + fmt(Bb * Math.sin(ang)) + " = <span class='kc'>" + fmt(Aa * Bb * Math.sin(ang)) + "</span> = |a × b|"
+      : "Give a and b some length to get an angle.";
+    return { a, b, c, ang };
+  }
+
+  /* ---------- 3D projection ---------- */
+  const cv = $("scene"), ctx = cv.getContext("2d");
+  let yaw = -0.7, pitch = 0.42, W = 400, scale = 40;
+  let spin = true;
+  $("spin").addEventListener("click", () => setSpin(!spin));
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) { spin = false; $("spin").setAttribute("aria-pressed", "false"); }
+
+  function view(p) {
+    // rotate around z (yaw), then tilt (pitch). z is up.
+    const cy = Math.cos(yaw), sy = Math.sin(yaw);
+    let x = p[0] * cy - p[1] * sy, y = p[0] * sy + p[1] * cy, z = p[2];
+    const cp = Math.cos(pitch), sp = Math.sin(pitch);
+    const y2 = y * cp - z * sp, z2 = y * sp + z * cp;
+    return [x, y2, z2]; // x right, y depth (into screen), z up
+  }
+  function proj(p) {
+    const v = view(p);
+    const f = 14, k = f / (f + v[1]);
+    return [W / 2 + v[0] * scale * k, W / 2 - v[2] * scale * k, v[1]];
+  }
+  function line3(p, q, color, w, dash, alpha) {
+    const A = proj(p), B = proj(q);
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = w; ctx.lineCap = "round"; ctx.setLineDash(dash || []);
+    if (alpha != null) ctx.globalAlpha = alpha;
+    ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke(); ctx.restore();
+  }
+  function arrow3(p, q, color, w) {
+    const A = proj(p), B = proj(q);
+    const len = Math.hypot(B[0] - A[0], B[1] - A[1]);
+    ctx.save(); ctx.fillStyle = color; ctx.strokeStyle = color; ctx.lineWidth = w; ctx.lineCap = "round";
+    if (len < 2) { ctx.beginPath(); ctx.arc(B[0], B[1], w, 0, 7); ctx.fill(); ctx.restore(); return; }
+    const ang = Math.atan2(B[1] - A[1], B[0] - A[0]), hl = Math.min(8 + w * 2.4, len * 0.4);
+    ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0] - Math.cos(ang) * hl * 0.8, B[1] - Math.sin(ang) * hl * 0.8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(B[0], B[1]);
+    ctx.lineTo(B[0] - hl * Math.cos(ang - 0.42), B[1] - hl * Math.sin(ang - 0.42));
+    ctx.lineTo(B[0] - hl * Math.cos(ang + 0.42), B[1] - hl * Math.sin(ang + 0.42));
+    ctx.closePath(); ctx.fill(); ctx.restore();
+  }
+  function text3(p, t, color) {
+    const P = proj(p);
+    ctx.save(); ctx.font = "600 14px " + css("--font-mono"); ctx.fillStyle = color; ctx.textBaseline = "middle";
+    const tw = ctx.measureText(t).width;
+    ctx.fillText(t, Math.max(4, Math.min(W - tw - 4, P[0] + 8)), Math.max(10, Math.min(W - 10, P[1] - 10)));
+    ctx.restore();
+  }
+
+  let cur = null;
+  function draw() {
+    const dpr = window.devicePixelRatio || 1;
+    W = Math.max(220, Math.floor($("cbox").getBoundingClientRect().width));
+    cv.style.width = W + "px"; cv.style.height = W + "px";
+    if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(W * dpr); }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const { a, b, c } = cur;
+    const R = Math.max(3, norm(st.a), norm(st.b), norm(c), norm(add(st.a, st.b)));
+    scale = W / (2 * R * 1.25);
+
+    ctx.fillStyle = css("--panel"); ctx.fillRect(0, 0, W, W);
+
+    // floor grid (z = 0)
+    const G = Math.ceil(R);
+    for (let k = -G; k <= G; k++) {
+      line3([k, -G, 0], [k, G, 0], css("--grid"), 1);
+      line3([-G, k, 0], [G, k, 0], css("--grid"), 1);
+    }
+    // axes
+    const ax = css("--axis");
+    [[[R * 1.1, 0, 0], "x"], [[0, R * 1.1, 0], "y"], [[0, 0, R * 1.1], "z"]].forEach(([p, n]) => {
+      line3(mul(p, -1), p, ax, 1.2, [4, 4]); arrow3(mul(p, 0.98), p, ax, 1.2); text3(p, n, css("--muted"));
+    });
+
+    // parallelogram spanned by a and b
+    const pts = [[0, 0, 0], st.a, add(st.a, st.b), st.b].map(proj);
+    ctx.save(); ctx.fillStyle = css("--plane"); ctx.globalAlpha = 0.16;
+    ctx.beginPath(); pts.forEach((P, i) => (i ? ctx.lineTo(P[0], P[1]) : ctx.moveTo(P[0], P[1]))); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 0.45; ctx.strokeStyle = css("--plane"); ctx.lineWidth = 1; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.restore();
+
+    // right-angle markers between c and a, c and b
+    const C = norm(c);
+    const cA = css("--va"), cB = css("--vb"), cC = css("--vc");
+    if (C > 1e-9) {
+      const m = 0.35 * Math.min(1, R / 3);
+      const uc = mul(c, m / C);
+      [[st.a, cA], [st.b, cB]].forEach(([v, col]) => {
+        const n = norm(v); if (n < 1e-9) return;
+        const uv = mul(v, m / n);
+        const p1 = proj(uc), p2 = proj(add(uc, uv)), p3 = proj(uv);
+        ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.lineTo(p3[0], p3[1]); ctx.stroke(); ctx.restore();
+      });
+      // drop line from c tip to the sheet origin for depth cue
+      line3([0, 0, 0], c, cC, 1, [2, 4], 0.5);
+    }
+
+    // curved arrow from first to second vector (in the sheet)
+    const A = norm(a), B = norm(b);
+    if (A > 1e-9 && B > 1e-9 && C > 1e-9) {
+      const ua = mul(a, 1 / A);
+      const w = cross(mul(c, 1 / C), ua); // in-plane, 90° from a toward b
+      const theta = Math.acos(Math.max(-1, Math.min(1, dot(a, b) / (A * B))));
+      const r = 0.55 * Math.min(A, B, 1.6);
+      const N = 24, arc = [];
+      for (let i = 0; i <= N; i++) { const t = theta * i / N * 0.9 + theta * 0.05; arc.push(add(mul(ua, r * Math.cos(t)), mul(w, r * Math.sin(t)))); }
+      ctx.save(); ctx.strokeStyle = css("--ink"); ctx.globalAlpha = 0.7; ctx.lineWidth = 1.6;
+      ctx.beginPath(); arc.forEach((p, i) => { const P = proj(p); i ? ctx.lineTo(P[0], P[1]) : ctx.moveTo(P[0], P[1]); }); ctx.stroke(); ctx.restore();
+      const P1 = proj(arc[N - 1]), P2 = proj(arc[N]);
+      const ang = Math.atan2(P2[1] - P1[1], P2[0] - P1[0]);
+      ctx.save(); ctx.fillStyle = css("--ink"); ctx.globalAlpha = 0.7;
+      ctx.beginPath(); ctx.moveTo(P2[0], P2[1]);
+      ctx.lineTo(P2[0] - 9 * Math.cos(ang - 0.5), P2[1] - 9 * Math.sin(ang - 0.5));
+      ctx.lineTo(P2[0] - 9 * Math.cos(ang + 0.5), P2[1] - 9 * Math.sin(ang + 0.5));
+      ctx.closePath(); ctx.fill(); ctx.restore();
+      const mid = add(mul(ua, r * 1.25 * Math.cos(theta / 2)), mul(w, r * 1.25 * Math.sin(theta / 2)));
+      const PM = proj(mid);
+      ctx.save(); ctx.font = "600 14px " + css("--font-mono"); ctx.fillStyle = css("--ink"); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("θ", PM[0], PM[1]); ctx.restore();
+    }
+
+    // height of the parallelogram: from the tip of b straight down onto the line of a
+    const An = norm(st.a);
+    if (An > 1e-9 && norm(st.b) > 1e-9 && C > 1e-9) {
+      const foot = mul(st.a, dot(st.a, st.b) / (An * An));
+      line3(foot, st.b, css("--vh"), 3, [6, 4]);
+      if (Math.abs(dot(st.a, st.b)) / (An * An) > 1) line3([0, 0, 0], foot, css("--axis"), 1, [2, 4]);
+      const hmid = mul(add(foot, st.b), 0.5);
+      const PH = proj(hmid);
+      ctx.save(); ctx.font = "600 14px " + css("--font-mono"); ctx.fillStyle = css("--vh"); ctx.textBaseline = "middle";
+      ctx.fillText("h", PH[0] + 8, PH[1]); ctx.restore();
+    }
+
+    // vectors, far ones first
+    const items = [
+      { v: st.a, col: cA, w: 4, t: "a" },
+      { v: st.b, col: cB, w: 4, t: "b" },
+      { v: c, col: cC, w: 5, t: swapped ? "b×a" : "a×b" },
+    ].map((it) => ({ ...it, d: view(mul(it.v, 0.5))[1] })).sort((p, q) => q.d - p.d);
+    items.forEach((it) => { if (norm(it.v) > 1e-9) { arrow3([0, 0, 0], it.v, it.col, it.w); text3(it.v, it.t, it.col); } });
+  }
+
+  /* ---------- interaction ---------- */
+  let dragging = false, lx = 0, ly = 0;
+  let sx = 0, sy = 0, moved = false, wasSpinning = false;
+  function setSpin(on) { spin = on; $("spin").setAttribute("aria-pressed", String(on)); if (on) { last = 0; requestAnimationFrame(loop); } }
+  cv.addEventListener("pointerdown", (e) => {
+    dragging = true; moved = false; lx = sx = e.clientX; ly = sy = e.clientY;
+    cv.setPointerCapture(e.pointerId);
+    wasSpinning = spin; spin = false;
+  });
+  cv.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    if (!moved && Math.hypot(e.clientX - sx, e.clientY - sy) < 6) return;
+    moved = true;
+    // the scene follows the finger: drag right turns the near side to the right, drag down tips the top toward you
+    yaw += (e.clientX - lx) * 0.01;
+    pitch = Math.max(-1.5, Math.min(1.5, pitch + (e.clientY - ly) * 0.01));
+    lx = e.clientX; ly = e.clientY; draw();
+  });
+  cv.addEventListener("pointerup", () => {
+    if (!dragging) return;
+    dragging = false;
+    if (!moved) setSpin(!wasSpinning);        // a tap toggles auto-rotate
+    else $("spin").setAttribute("aria-pressed", "false");
+  });
+  cv.addEventListener("pointercancel", () => { dragging = false; });
+
+  function lookAlong(dir) {
+    const n = norm(dir); if (n < 1e-9) return;
+    const d = mul(dir, 1 / n);
+    // put d pointing straight at the viewer: after yaw, d has x = 0 and negative depth
+    yaw = Math.atan2(d[0], d[1]) + Math.PI;
+    const rho = Math.hypot(d[0], d[1]);
+    pitch = Math.max(-1.5, Math.min(1.5, Math.atan2(d[2], rho)));
+    spin = false; $("spin").setAttribute("aria-pressed", "false"); draw();
+  }
+  $("viewTop").addEventListener("click", () => lookAlong(cur.c));
+  $("viewEdge").addEventListener("click", () => {
+    lookAlong(st.a);
+  });
+
+  /* ---------- the sheet drawn flat (2D) ---------- */
+  const fc = $("flat"), fx = fc.getContext("2d");
+  function drawFlat() {
+    const dpr = window.devicePixelRatio || 1;
+    const FW = Math.max(220, Math.floor($("flatbox").getBoundingClientRect().width));
+    const FH = Math.round(FW * 0.55);
+    fc.style.width = FW + "px"; fc.style.height = FH + "px";
+    if (fc.width !== Math.round(FW * dpr) || fc.height !== Math.round(FH * dpr)) { fc.width = Math.round(FW * dpr); fc.height = Math.round(FH * dpr); }
+    fx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    fx.fillStyle = css("--panel"); fx.fillRect(0, 0, FW, FH);
+    const A = norm(st.a), B = norm(st.b);
+    if (A < 1e-9 || B < 1e-9) return;
+    const th = Math.acos(Math.max(-1, Math.min(1, dot(st.a, st.b) / (A * B))));
+    const bx = B * Math.cos(th), by = B * Math.sin(th);
+    // fit (0,0), (A,0), (bx,by), (A+bx,by)
+    const xs = [0, A, bx, A + bx], minX = Math.min(...xs), maxX = Math.max(...xs);
+    const maxY = Math.max(by, 0.3 * A);
+    const pad = 26;
+    const k = Math.min((FW - 2 * pad) / (maxX - minX || 1), (FH - 2 * pad) / (maxY || 1));
+    const ox = pad - minX * k + ((FW - 2 * pad) - (maxX - minX) * k) / 2, oy = FH - pad;
+    const P = (x, y) => [ox + x * k, oy - y * k];
+    const lineP = (p, q, col, w, dash) => { fx.save(); fx.strokeStyle = col; fx.lineWidth = w; fx.lineCap = "round"; fx.setLineDash(dash || []); fx.beginPath(); fx.moveTo(...P(...p)); fx.lineTo(...P(...q)); fx.stroke(); fx.restore(); };
+    const arrowP = (q, col, w) => {
+      const [x0, y0] = P(0, 0), [x1, y1] = P(...q);
+      const ang = Math.atan2(y1 - y0, x1 - x0), len = Math.hypot(x1 - x0, y1 - y0), hl = Math.min(8 + w * 2.4, len * 0.4);
+      fx.save(); fx.strokeStyle = col; fx.fillStyle = col; fx.lineWidth = w; fx.lineCap = "round";
+      fx.beginPath(); fx.moveTo(x0, y0); fx.lineTo(x1 - Math.cos(ang) * hl * 0.8, y1 - Math.sin(ang) * hl * 0.8); fx.stroke();
+      fx.beginPath(); fx.moveTo(x1, y1); fx.lineTo(x1 - hl * Math.cos(ang - 0.42), y1 - hl * Math.sin(ang - 0.42)); fx.lineTo(x1 - hl * Math.cos(ang + 0.42), y1 - hl * Math.sin(ang + 0.42)); fx.closePath(); fx.fill(); fx.restore();
+    };
+    const textP = (x, y, t, col, dx, dy, align) => { const [px, py] = P(x, y); fx.save(); fx.font = "600 14px " + css("--font-mono"); fx.fillStyle = col; fx.textBaseline = "middle"; fx.textAlign = align || "left"; fx.fillText(t, px + (dx || 0), py + (dy || 0)); fx.restore(); };
+
+    // parallelogram
+    fx.save(); fx.fillStyle = css("--plane"); fx.globalAlpha = 0.14; fx.beginPath();
+    [[0, 0], [A, 0], [A + bx, by], [bx, by]].forEach((q, i) => (i ? fx.lineTo(...P(...q)) : fx.moveTo(...P(...q))));
+    fx.closePath(); fx.fill(); fx.globalAlpha = 0.45; fx.strokeStyle = css("--plane"); fx.setLineDash([4, 4]); fx.lineWidth = 1; fx.stroke(); fx.restore();
+    // line of a extended to the foot of the height
+    if (bx < 0 || bx > A) lineP([Math.min(0, bx), 0], [Math.max(A, bx), 0], css("--axis"), 1, [3, 4]);
+    // part of b along a
+    lineP([0, 0], [bx, 0], css("--vb"), 2, [2, 4]);
+    // height
+    lineP([bx, 0], [bx, by], css("--vh"), 3.5, [6, 4]);
+    if (by * k > 14) {
+      const s = 9, dir = bx >= 0 ? -1 : 1;
+      const [px, py] = P(bx, 0);
+      fx.save(); fx.strokeStyle = css("--muted"); fx.lineWidth = 1.2; fx.beginPath();
+      fx.moveTo(px, py - s); fx.lineTo(px + dir * s, py - s); fx.lineTo(px + dir * s, py); fx.stroke(); fx.restore();
+    }
+    arrowP([A, 0], css("--va"), 4);
+    arrowP([bx, by], css("--vb"), 4);
+    // angle arc
+    const [cx0, cy0] = P(0, 0), rr = Math.min(40, 0.35 * Math.min(A, B) * k);
+    fx.save(); fx.strokeStyle = css("--ink"); fx.globalAlpha = 0.75; fx.lineWidth = 1.6; fx.beginPath(); fx.arc(cx0, cy0, rr, 0, -th, true); fx.stroke(); fx.restore();
+    fx.save(); fx.font = "600 14px " + css("--font-mono"); fx.fillStyle = css("--ink"); fx.textAlign = "center"; fx.textBaseline = "middle";
+    fx.fillText("θ", cx0 + (rr + 12) * Math.cos(th / 2), cy0 - (rr + 12) * Math.sin(th / 2)); fx.restore();
+    // labels
+    textP(A, 0, "a", css("--va"), 8, 12);
+    textP(bx, by, "b", css("--vb"), 8, -8);
+    if (by * k > 18) textP(bx, by / 2, "h", css("--vh"), bx >= 0 ? 10 : -10, 0, bx >= 0 ? "left" : "right");
+  }
+
+  $("thetaSlider").addEventListener("input", () => {
+    const th = parseFloat($("thetaSlider").value) * Math.PI / 180;
+    const a = st.a, A = norm(a);
+    if (A < 1e-9) return;
+    const ua = mul(a, 1 / A);
+    let c = cross(st.a, st.b), w;
+    if (norm(c) > 1e-9) w = cross(mul(c, 1 / norm(c)), ua);
+    else {
+      const helper = Math.abs(ua[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0];
+      const p = cross(helper, ua); w = mul(p, 1 / norm(p));
+    }
+    const B = norm(st.b) > 1e-9 ? norm(st.b) : 2;
+    st.b = add(mul(ua, B * Math.cos(th)), mul(w, B * Math.sin(th))).map((x) => Math.round(x * 1000) / 1000);
+    update();
+  });
+
+  function update() { syncSliders(); cur = renderText(); draw(); drawFlat(); }
+
+  let last = 0;
+  function loop(t) {
+    if (!spin) return;
+    if (t && last) yaw += Math.min(50, t - last) * 0.0004;
+    last = t || 0;
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  update(); loop();
+  let lastW = 0;
+  if (window.ResizeObserver) new ResizeObserver(() => { const w = Math.floor($("cbox").getBoundingClientRect().width); if (w !== lastW) { lastW = w; draw(); } }).observe($("cbox"));
+  let lastF = 0;
+  if (window.ResizeObserver) new ResizeObserver(() => { const w = Math.floor($("flatbox").getBoundingClientRect().width); if (w !== lastF) { lastF = w; drawFlat(); } }).observe($("flatbox"));
+  new MutationObserver(() => { draw(); drawFlat(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => draw());
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { draw(); drawFlat(); });
+})();
+</script>
+</body>
+</html>
